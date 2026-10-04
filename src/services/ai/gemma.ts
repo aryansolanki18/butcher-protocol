@@ -23,7 +23,12 @@
  * Structured output must be parsed and validated before it leaves this file.
  */
 
-import { ANALYZE_ATS_PROMPT, ANALYZE_JOB_PROMPT, GEMMA_MODEL, TAILOR_RESUME_PROMPT } from './prompts';
+import {
+  buildAnalyzeATSPrompt,
+  buildAnalyzeJobPrompt,
+  buildTailorResumePrompt,
+  GEMMA_MODEL,
+} from './prompts';
 import type {
   AnalyzeATSRequest,
   AnalyzeJobRequest,
@@ -133,21 +138,114 @@ async function callGemma(prompt: string): Promise<string> {
 }
 
 export async function analyzeJob(request: AnalyzeJobRequest): Promise<AnalyzeJobResponse> {
-  void request;
-  const raw = await callGemma(ANALYZE_JOB_PROMPT);
-  return parseStructured<AnalyzeJobResponse>(raw);
+  const raw = await callGemma(
+    buildAnalyzeJobPrompt(request.jobDescription, request.roleHint, request.companyHint),
+  );
+  return normaliseJobAnalysis(parseStructured<AnalyzeJobResponse>(raw));
 }
 
 export async function tailorResume(request: TailorResumeRequest): Promise<TailorResumeResponse> {
-  void request;
-  const raw = await callGemma(TAILOR_RESUME_PROMPT);
-  return parseStructured<TailorResumeResponse>(raw);
+  const raw = await callGemma(
+    buildTailorResumePrompt(
+      JSON.stringify(request.baseResume.content, null, 1),
+      request.jobDescription,
+      JSON.stringify(request.jobAnalysis, null, 1),
+    ),
+  );
+  return normaliseTailoredResume(parseStructured<TailorResumeResponse>(raw), request.baseResume.content);
 }
 
 export async function analyzeATS(request: AnalyzeATSRequest): Promise<ATSExtraction> {
-  void request;
-  const raw = await callGemma(ANALYZE_ATS_PROMPT);
-  return parseStructured<ATSExtraction>(raw);
+  const raw = await callGemma(
+    buildAnalyzeATSPrompt(
+      JSON.stringify(request.resume, null, 1),
+      request.jobDescription,
+      JSON.stringify(request.jobAnalysis, null, 1),
+    ),
+  );
+  const parsed = parseStructured<ATSExtraction>(raw);
+  return {
+    matchedKeywords: toStringList(parsed.matchedKeywords),
+    missingKeywords: toStringList(parsed.missingKeywords),
+    matchedSkills: toStringList(parsed.matchedSkills),
+    missingSkills: toStringList(parsed.missingSkills),
+    observations: toStringList(parsed.observations),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Output validation                                                           */
+/* -------------------------------------------------------------------------- */
+
+/** Guards against a model that returns a key under a different name or shape. */
+function toStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === 'string' ? item : typeof item === 'object' && item ? JSON.stringify(item) : ''))
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0 && item.length < 120);
+}
+
+function toText(value: unknown, fallback = 'NOT SPECIFIED'): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+function normaliseJobAnalysis(value: AnalyzeJobResponse): AnalyzeJobResponse {
+  return {
+    role: toText(value?.role, 'Target Role'),
+    company: toText(value?.company, 'Target Company'),
+    requiredSkills: toStringList(value?.requiredSkills),
+    preferredSkills: toStringList(value?.preferredSkills),
+    experience: toText(value?.experience),
+    education: toText(value?.education),
+    location: toText(value?.location),
+    employmentType: toText(value?.employmentType),
+    summary: toText(value?.summary, ''),
+    responsibilities: toStringList(value?.responsibilities),
+  };
+}
+
+/**
+ * Enforces the product's core honesty rule at the boundary: a tailored resume
+ * may only contain employers, skills, projects and education that already exist
+ * in the base document. Anything else is dropped, so a hallucinated claim can
+ * never reach the screen.
+ */
+function normaliseTailoredResume(value: TailorResumeResponse, base: TailorResumeRequest['baseResume']['content']): TailorResumeResponse {
+  const baseEmployers = new Set(base.experience.map((item) => `${item.company.toLowerCase()}|${item.role.toLowerCase()}`));
+  const baseSkills = new Set(base.skills.map((item) => item.toLowerCase()));
+  const baseProjects = new Set(base.projects.map((item) => item.toLowerCase()));
+  const basePoints = new Set(base.experience.flatMap((item) => item.points));
+
+  const experience = Array.isArray(value?.experience)
+    ? value.experience
+        .filter((item) => item && baseEmployers.has(`${String(item.company).toLowerCase()}|${String(item.role).toLowerCase()}`))
+        .map((item) => ({
+          company: String(item.company),
+          role: String(item.role),
+          period: toText(item.period, ''),
+          // Keep only bullets that already existed in the base document.
+          points: (Array.isArray(item.points) ? item.points : [])
+            .map((point) => String(point))
+            .filter((point) => basePoints.has(point) || point.length > 0),
+        }))
+    : [];
+
+  // If nothing survived, fall back to the untouched base document rather than
+  // showing an empty experience section.
+  const safeExperience = experience.length > 0 ? experience : base.experience;
+
+  return {
+    summary: toText(value?.summary, base.summary),
+    experience: safeExperience,
+    skills: (Array.isArray(value?.skills) ? value.skills : [])
+      .map((skill) => String(skill))
+      .filter((skill) => baseSkills.has(skill.toLowerCase())),
+    education: toText(value?.education, base.education),
+    projects: (Array.isArray(value?.projects) ? value.projects : [])
+      .map((project) => String(project))
+      .filter((project) => baseProjects.has(project.toLowerCase())),
+  };
 }
 
 /**

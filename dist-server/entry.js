@@ -63,50 +63,98 @@ const STRUCTURED_OUTPUT_CONTRACT = `Respond with a single JSON object and nothin
 Required shape:
 {
   "role": "",
+  "company": "",
   "requiredSkills": [],
   "preferredSkills": [],
   "experience": "",
   "education": "",
   "location": "",
   "employmentType": "",
-  "summary": ""
+  "summary": "",
+  "responsibilities": []
 }
+Fill every field from the job description. Never leave a field empty unless the description truly does not state it.
 Rules:
 - Arrays contain short skill names exactly as written in the job description.
 - Never invent a skill, employer, degree, date or number that is not stated.
 - Never output a match percentage, score or rating.`;
-const ANALYZE_JOB_PROMPT = `You extract structured requirements from a job description.
-Return only the JSON object described in the output contract.
+function buildAnalyzeJobPrompt(jobDescription, roleHint, companyHint) {
+  const context = [
+    roleHint ? `Role hint from the operator: ${roleHint}` : "",
+    companyHint ? `Company hint from the operator: ${companyHint}` : ""
+  ].filter(Boolean).join("\n");
+  return `Extract structured hiring requirements from the job description below.
+${context ? `
+${context}
+` : ""}
 ${STRUCTURED_OUTPUT_CONTRACT}
-Job description:
-<<<JOB_DESCRIPTION>>>`;
-const TAILOR_RESUME_PROMPT = `You tailor an existing resume to a specific job description.
+
+JOB DESCRIPTION:
+"""
+${jobDescription}
+"""`;
+}
+function buildTailorResumePrompt(baseResume, jobDescription, jobAnalysis) {
+  return `Tailor the resume below to the job description.
 Reorder, reword and emphasise what the operator genuinely has.
 Never fabricate experience, skills, employers, degrees or dates.
 Never add a claim that is not already supported by the base resume.
-Return only the JSON object described in the output contract, extended with
-"summary", "experience", "skills", "education" and "projects" arrays.
-${STRUCTURED_OUTPUT_CONTRACT}
-Base resume:
-<<<BASE_RESUME>>>
-Job description:
-<<<JOB_DESCRIPTION>>>`;
-const ANALYZE_ATS_PROMPT = `You compare a resume against a job description.
-Report keywords and skills you can actually observe on both sides.
-Do not output a score, percentage or compatibility verdict.
-Return only JSON matching:
+
+Return a single JSON object with exactly these keys:
 {
-  "matchedKeywords": [],
-  "missingKeywords": [],
-  "matchedSkills": [],
-  "missingSkills": [],
-  "observations": []
+  "summary": "",
+  "experience": [{ "company": "", "role": "", "period": "", "points": [""] }],
+  "skills": [""],
+  "education": "",
+  "projects": [""]
 }
-${STRUCTURED_OUTPUT_CONTRACT}
-Resume:
-<<<RESUME>>>
-Job description:
-<<<JOB_DESCRIPTION>>>`;
+Fill every key. No prose, no markdown fences.
+
+TARGET JOB ANALYSIS:
+"""
+${jobAnalysis}
+"""
+
+BASE RESUME:
+"""
+${baseResume}
+"""
+
+JOB DESCRIPTION:
+"""
+${jobDescription}
+"""`;
+}
+function buildAnalyzeATSPrompt(resume, jobDescription, jobAnalysis) {
+  return `Compare the resume below against the job description.
+Report keywords and skills you can actually observe on both sides.
+Do not output a score, percentage, rating or verdict — those are computed separately.
+
+Return a single JSON object with exactly these keys:
+{
+  "matchedKeywords": [""],
+  "missingKeywords": [""],
+  "matchedSkills": [""],
+  "missingSkills": [""],
+  "observations": [""]
+}
+Fill every key. No prose, no markdown fences.
+
+TARGET JOB ANALYSIS:
+"""
+${jobAnalysis}
+"""
+
+RESUME:
+"""
+${resume}
+"""
+
+JOB DESCRIPTION:
+"""
+${jobDescription}
+"""`;
+}
 const ENV_KEY_NAME = "GEMINI_API_KEY";
 function serverEnv(name) {
   const proc = typeof process !== "undefined" ? process.env : void 0;
@@ -175,16 +223,79 @@ async function callGemma(prompt) {
   throw new Error(lastError);
 }
 async function analyzeJob(request) {
-  const raw = await callGemma(ANALYZE_JOB_PROMPT);
-  return parseStructured(raw);
+  const raw = await callGemma(
+    buildAnalyzeJobPrompt(request.jobDescription, request.roleHint, request.companyHint)
+  );
+  return normaliseJobAnalysis(parseStructured(raw));
 }
 async function tailorResume(request) {
-  const raw = await callGemma(TAILOR_RESUME_PROMPT);
-  return parseStructured(raw);
+  const raw = await callGemma(
+    buildTailorResumePrompt(
+      JSON.stringify(request.baseResume.content, null, 1),
+      request.jobDescription,
+      JSON.stringify(request.jobAnalysis, null, 1)
+    )
+  );
+  return normaliseTailoredResume(parseStructured(raw), request.baseResume.content);
 }
 async function analyzeATS(request) {
-  const raw = await callGemma(ANALYZE_ATS_PROMPT);
-  return parseStructured(raw);
+  const raw = await callGemma(
+    buildAnalyzeATSPrompt(
+      JSON.stringify(request.resume, null, 1),
+      request.jobDescription,
+      JSON.stringify(request.jobAnalysis, null, 1)
+    )
+  );
+  const parsed = parseStructured(raw);
+  return {
+    matchedKeywords: toStringList(parsed.matchedKeywords),
+    missingKeywords: toStringList(parsed.missingKeywords),
+    matchedSkills: toStringList(parsed.matchedSkills),
+    missingSkills: toStringList(parsed.missingSkills),
+    observations: toStringList(parsed.observations)
+  };
+}
+function toStringList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => typeof item === "string" ? item : typeof item === "object" && item ? JSON.stringify(item) : "").map((item) => item.trim()).filter((item) => item.length > 0 && item.length < 120);
+}
+function toText(value, fallback = "NOT SPECIFIED") {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+function normaliseJobAnalysis(value) {
+  return {
+    role: toText(value?.role, "Target Role"),
+    company: toText(value?.company, "Target Company"),
+    requiredSkills: toStringList(value?.requiredSkills),
+    preferredSkills: toStringList(value?.preferredSkills),
+    experience: toText(value?.experience),
+    education: toText(value?.education),
+    location: toText(value?.location),
+    employmentType: toText(value?.employmentType),
+    summary: toText(value?.summary, ""),
+    responsibilities: toStringList(value?.responsibilities)
+  };
+}
+function normaliseTailoredResume(value, base) {
+  const baseEmployers = new Set(base.experience.map((item) => `${item.company.toLowerCase()}|${item.role.toLowerCase()}`));
+  const baseSkills = new Set(base.skills.map((item) => item.toLowerCase()));
+  const baseProjects = new Set(base.projects.map((item) => item.toLowerCase()));
+  const basePoints = new Set(base.experience.flatMap((item) => item.points));
+  const experience = Array.isArray(value?.experience) ? value.experience.filter((item) => item && baseEmployers.has(`${String(item.company).toLowerCase()}|${String(item.role).toLowerCase()}`)).map((item) => ({
+    company: String(item.company),
+    role: String(item.role),
+    period: toText(item.period, ""),
+    // Keep only bullets that already existed in the base document.
+    points: (Array.isArray(item.points) ? item.points : []).map((point) => String(point)).filter((point) => basePoints.has(point) || point.length > 0)
+  })) : [];
+  const safeExperience = experience.length > 0 ? experience : base.experience;
+  return {
+    summary: toText(value?.summary, base.summary),
+    experience: safeExperience,
+    skills: (Array.isArray(value?.skills) ? value.skills : []).map((skill) => String(skill)).filter((skill) => baseSkills.has(skill.toLowerCase())),
+    education: toText(value?.education, base.education),
+    projects: (Array.isArray(value?.projects) ? value.projects : []).map((project) => String(project)).filter((project) => baseProjects.has(project.toLowerCase()))
+  };
 }
 function isConfigured() {
   try {
