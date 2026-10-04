@@ -1,111 +1,127 @@
-import type { Operation, OperationStatus } from '@/types';
-
 /**
- * DEVELOPMENT DATA — application tracking.
- * The `Operation` shape is deliberately flat so a Phase 2 Supabase table can
- * mirror it directly (`job_id` is kept for the eventual foreign key).
+ * BUTCHER PROTOCOL — Mock Application Operations (Kanban)
+ * Tracks user application lifecycles across tactical operational stages.
  */
-export const mockOperations: Operation[] = [
+
+export type OperationStatus = 'SAVED' | 'APPLIED' | 'INTERVIEW' | 'REJECTED' | 'OFFER';
+
+export interface OperationCardItem {
+  id: string;
+  jobId: string;
+  title: string;
+  company: string;
+  location: string;
+  matchScore: number;
+  status: OperationStatus;
+  appliedDate?: string;
+  nextStep?: string;
+  salary?: string;
+  notes?: string;
+}
+
+export const INITIAL_OPERATIONS: OperationCardItem[] = [
   {
-    id: 'op-001',
-    jobId: 'bp-001',
-    jobTitle: 'Machine Learning Engineer',
-    company: 'Helix Vector Labs',
-    date: '2026-10-03',
-    matchScore: 95,
+    id: 'OP-101',
+    jobId: 'TGT-8901',
+    title: 'Staff AI Systems Engineer',
+    company: 'Apex Intelligence Labs',
+    location: 'San Francisco, CA',
+    matchScore: 96,
     status: 'INTERVIEW',
-    note: 'First-round scheduled. Panel includes two staff engineers.',
+    appliedDate: '2026-09-28',
+    nextStep: 'System Architecture & CUDA Profiling Screen (Tomorrow 14:00 PST)',
+    salary: '$180,000 - $220,000',
+    notes: 'Recruiter commended custom runtime project benchmarks.',
   },
   {
-    id: 'op-002',
-    jobId: 'bp-002',
-    jobTitle: 'Data Scientist',
-    company: 'Northarc Systems',
-    date: '2026-10-02',
-    matchScore: 81,
+    id: 'OP-102',
+    jobId: 'TGT-8902',
+    title: 'Autonomous ML Pipeline Architect',
+    company: 'Vanguard Defense Systems',
+    location: 'Arlington, VA',
+    matchScore: 92,
     status: 'APPLIED',
-    note: 'Applied with a forecasting-focused variant of the base resume.',
+    appliedDate: '2026-10-01',
+    nextStep: 'Security Verification & Requisition Review',
+    salary: '$165,000 - $205,000',
+    notes: 'Tailored resume submitted highlighting containerization and edge TPU experience.',
   },
   {
-    id: 'op-003',
-    jobId: 'bp-003',
-    jobTitle: 'AI Engineer',
-    company: 'Quanterra',
-    date: '2026-10-03',
-    matchScore: 90,
-    status: 'APPLIED',
-    note: 'Referred internally. Waiting on founder acknowledgement.',
+    id: 'OP-103',
+    jobId: 'TGT-8903',
+    title: 'Distributed Deep Learning Researcher',
+    company: 'CipherTech Dynamics',
+    location: 'Seattle, WA',
+    matchScore: 88,
+    status: 'SAVED',
+    appliedDate: undefined,
+    nextStep: 'Identity Forge awaiting execution',
+    salary: '$170,000 - $210,000',
+    notes: 'Target matches Ray Core and Megatron-LM focus.',
   },
   {
-    id: 'op-004',
-    jobId: 'bp-004',
-    jobTitle: 'NLP Engineer',
-    company: 'Tessellate AI',
-    date: '2026-09-30',
+    id: 'OP-104',
+    jobId: 'TGT-8904',
+    title: 'Computer Vision Intelligence Specialist',
+    company: 'OmniVision Synthetic Labs',
+    location: 'Austin, TX',
     matchScore: 85,
-    status: 'SAVED',
-    note: 'Tailored resume ready. Holding until the async exercise lands.',
+    status: 'APPLIED',
+    appliedDate: '2026-09-30',
+    nextStep: 'Awaiting Technical Screening invitation',
+    salary: '$150,000 - $185,000',
+    notes: 'Emphasized TensorRT acceleration and OpenCV spatial graphs.',
   },
   {
-    id: 'op-005',
-    jobId: 'bp-008',
-    jobTitle: 'Computer Vision Engineer',
-    company: 'Ironvale Robotics',
-    date: '2026-09-28',
-    matchScore: 55,
-    status: 'REJECTED',
-    note: 'Closed after the CV-specific technical screen.',
-  },
-  {
-    id: 'op-006',
-    jobId: 'bp-012',
-    jobTitle: 'AI Engineer',
-    company: 'Arclight Inference',
-    date: '2026-10-04',
-    matchScore: 100,
-    status: 'SAVED',
-    note: 'Highest alignment in the current set. Preparing to apply.',
-  },
-  {
-    id: 'op-007',
-    jobId: 'bp-009',
-    jobTitle: 'Applied ML Engineer',
-    company: 'Signalfern',
-    date: '2026-09-27',
-    matchScore: 70,
-    status: 'OFFER',
-    note: 'Offer received. Negotiating scope and start window.',
-  },
-  {
-    id: 'op-008',
-    jobId: 'bp-006',
-    jobTitle: 'MLOps Engineer',
-    company: 'Latticefold',
-    date: '2026-09-30',
-    matchScore: 64,
+    id: 'OP-105',
+    jobId: 'TGT-8905',
+    title: 'Model Quantization & Inference Engineer',
+    company: 'Kestrel Aerospace',
+    location: 'Denver, CO',
+    matchScore: 79,
     status: 'INTERVIEW',
-    note: 'Technical conversation booked for platform and CI/CD depth.',
+    appliedDate: '2026-09-24',
+    nextStep: 'Technical Deep-Dive with Flight Software Lead',
+    salary: '$140,000 - $175,000',
+    notes: 'Completed initial phone screen. Focus will be on AWQ quantization noise limits.',
   },
   {
-    id: 'op-009',
-    jobId: 'bp-010',
-    jobTitle: 'Data Scientist',
-    company: 'Nimbus Grid',
-    date: '2026-10-01',
-    matchScore: 86,
+    id: 'OP-106',
+    jobId: 'TGT-8906',
+    title: 'Applied AI Platform Engineer',
+    company: 'Hyperion Autonomous Systems',
+    location: 'Boston, MA',
+    matchScore: 74,
     status: 'SAVED',
-    note: 'Resume variant ready for the forecasting product surface.',
+    appliedDate: undefined,
+    nextStep: 'Protocol Scan pending',
+    salary: '$135,000 - $165,000',
+    notes: 'Review database query optimization bullet before applying.',
   },
   {
-    id: 'op-010',
-    jobId: 'bp-013',
-    jobTitle: 'Data Analyst',
-    company: 'Fieldstone Retail Labs',
-    date: '2026-09-23',
-    matchScore: 48,
+    id: 'OP-107',
+    jobId: 'TGT-8907',
+    title: 'Cybernetic Systems Safety Auditor',
+    company: 'Ironclad Cybernetics',
+    location: 'New York, NY',
+    matchScore: 68,
     status: 'REJECTED',
-    note: 'Below the match threshold. Archived for reference.',
+    appliedDate: '2026-09-15',
+    nextStep: 'Archived for analysis',
+    salary: '$145,000 - $180,000',
+    notes: 'Role prioritized 5+ years formal red-teaming certification over software infrastructure.',
+  },
+  {
+    id: 'OP-108',
+    jobId: 'TGT-8890',
+    title: 'Senior Distributed Systems Specialist',
+    company: 'Blackbox Cognitive Architecture',
+    location: 'Remote',
+    matchScore: 94,
+    status: 'OFFER',
+    appliedDate: '2026-09-10',
+    nextStep: 'Counter-offer evaluation and clearance paperwork',
+    salary: '$195,000 + Equity',
+    notes: 'Official offer package received. Strong match on distributed execution stack.',
   },
 ];
-
-export const OPERATION_STATUSES: OperationStatus[] = ['SAVED', 'APPLIED', 'INTERVIEW', 'REJECTED', 'OFFER'];

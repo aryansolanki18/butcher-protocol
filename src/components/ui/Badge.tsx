@@ -1,63 +1,168 @@
-import type { ReactNode } from 'react';
-import type { Priority, ScoreTier } from '@/types';
+import React from 'react';
 
-export type BadgeTone = Priority | ScoreTier | 'NEUTRAL' | 'SUCCESS' | 'INTEL' | 'AMBER';
-
-const tones: Record<BadgeTone, string> = {
-  CRITICAL: 'border-signal-dim bg-signal/10 text-[#F4526A]',
-  HIGH: 'border-signal-dim bg-signal/10 text-[#F4526A]',
-  MEDIUM: 'border-amber/30 bg-amber/10 text-amber',
-  LOW: 'border-intel/30 bg-intel/10 text-intel',
-  critical: 'border-signal-dim bg-signal/10 text-[#F4526A]',
-  high: 'border-amber/30 bg-amber/10 text-amber',
-  medium: 'border-intel/30 bg-intel/10 text-intel',
-  low: 'border-border-strong bg-elevated text-muted',
-  NEUTRAL: 'border-border-strong bg-elevated text-secondary',
-  SUCCESS: 'border-success/30 bg-success/10 text-success',
-  INTEL: 'border-intel/30 bg-intel/10 text-intel',
-  AMBER: 'border-amber/30 bg-amber/10 text-amber',
-};
+export type BadgeVariant =
+  | 'CRITICAL'
+  | 'HIGH'
+  | 'MEDIUM'
+  | 'LOW'
+  | 'SAVED'
+  | 'APPLIED'
+  | 'INTERVIEW'
+  | 'REJECTED'
+  | 'OFFER'
+  | 'DEVELOPMENT'
+  | 'ONLINE'
+  | 'DEFAULT';
 
 interface BadgeProps {
-  tone?: BadgeTone;
-  children: ReactNode;
+  variant?: BadgeVariant;
+  children: React.ReactNode;
+  size?: 'xs' | 'sm' | 'md';
+  pulse?: boolean;
   className?: string;
-  /** Optional dot. Status is never colour-only: the label always carries meaning. */
-  dot?: boolean;
+  style?: React.CSSProperties;
 }
 
-export function Badge({ tone = 'NEUTRAL', children, className = '', dot = false }: BadgeProps) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-[2px] border px-2 py-[3px] font-display text-[0.625rem] font-semibold uppercase tracking-[0.14em] ${tones[tone]} ${className}`}
-    >
-      {dot ? <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" /> : null}
-      {children}
-    </span>
-  );
-}
-
-/** Chip used inside SKILL MATRIX lists. */
-export function Chip({
+export const Badge: React.FC<BadgeProps> = ({
+  variant = 'DEFAULT',
   children,
-  state = 'neutral',
+  size = 'sm',
+  pulse = false,
   className = '',
-}: {
-  children: ReactNode;
-  state?: 'neutral' | 'matched' | 'missing';
-  className?: string;
-}) {
-  const stateClass =
-    state === 'matched'
-      ? 'border-success/25 bg-success/[0.07] text-[#7FE0AC]'
-      : state === 'missing'
-        ? 'border-amber/25 bg-amber/[0.07] text-amber'
-        : 'border-border-subtle bg-elevated/60 text-secondary';
+  style,
+}) => {
+  const getColors = (v: BadgeVariant) => {
+    switch (v) {
+      case 'CRITICAL':
+        return {
+          bg: 'rgba(225, 29, 56, 0.12)',
+          border: 'var(--signal-red)',
+          text: 'var(--signal-red)',
+          dot: 'var(--signal-red)',
+        };
+      case 'HIGH':
+        return {
+          bg: 'rgba(245, 165, 36, 0.12)',
+          border: 'var(--warning-amber)',
+          text: 'var(--warning-amber)',
+          dot: 'var(--warning-amber)',
+        };
+      case 'MEDIUM':
+        return {
+          bg: 'rgba(76, 141, 255, 0.12)',
+          border: 'rgba(76, 141, 255, 0.4)',
+          text: 'var(--intel-blue)',
+          dot: 'var(--intel-blue)',
+        };
+      case 'SAVED':
+        return {
+          bg: 'rgba(107, 107, 118, 0.15)',
+          border: 'var(--border-strong)',
+          text: 'var(--text-secondary)',
+          dot: 'var(--text-muted)',
+        };
+      case 'APPLIED':
+        return {
+          bg: 'rgba(76, 141, 255, 0.12)',
+          border: 'var(--intel-blue)',
+          text: 'var(--intel-blue)',
+          dot: 'var(--intel-blue)',
+        };
+      case 'INTERVIEW':
+        return {
+          bg: 'rgba(245, 165, 36, 0.12)',
+          border: 'var(--warning-amber)',
+          text: 'var(--warning-amber)',
+          dot: 'var(--warning-amber)',
+        };
+      case 'REJECTED':
+        return {
+          bg: 'rgba(225, 29, 56, 0.08)',
+          border: 'var(--signal-red-dim)',
+          text: '#E06B7B',
+          dot: '#E06B7B',
+        };
+      case 'OFFER':
+        return {
+          bg: 'rgba(47, 191, 113, 0.15)',
+          border: 'var(--success-green)',
+          text: 'var(--success-green)',
+          dot: 'var(--success-green)',
+        };
+      case 'ONLINE':
+        return {
+          bg: 'rgba(47, 191, 113, 0.12)',
+          border: 'rgba(47, 191, 113, 0.4)',
+          text: 'var(--success-green)',
+          dot: 'var(--success-green)',
+        };
+      case 'DEVELOPMENT':
+        return {
+          bg: 'rgba(31, 31, 38, 0.6)',
+          border: 'var(--border-strong)',
+          text: 'var(--text-muted)',
+          dot: 'var(--text-muted)',
+        };
+      default:
+        return {
+          bg: 'rgba(31, 31, 38, 0.4)',
+          border: 'var(--border-subtle)',
+          text: 'var(--text-secondary)',
+          dot: 'var(--text-muted)',
+        };
+    }
+  };
+
+  const colors = getColors(variant);
+
+  const sizeStyles: Record<string, React.CSSProperties> = {
+    xs: {
+      padding: '2px 6px',
+      fontSize: '0.65rem',
+      gap: '4px',
+    },
+    sm: {
+      padding: '3px 8px',
+      fontSize: '0.72rem',
+      gap: '5px',
+    },
+    md: {
+      padding: '4px 10px',
+      fontSize: '0.8rem',
+      gap: '6px',
+    },
+  };
+
   return (
     <span
-      className={`inline-flex items-center rounded-[2px] border px-2 py-[3px] text-[0.6875rem] leading-none ${stateClass} ${className}`}
+      className={className}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        fontFamily: 'var(--font-heading)',
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        borderRadius: 'var(--radius-sm)',
+        backgroundColor: colors.bg,
+        border: `1px solid ${colors.border}`,
+        color: colors.text,
+        lineHeight: 1.2,
+        userSelect: 'none',
+        ...sizeStyles[size],
+        ...style,
+      }}
     >
+      <span
+        style={{
+          width: '5px',
+          height: '5px',
+          borderRadius: '50%',
+          backgroundColor: colors.dot,
+          animation: pulse ? 'pulseDot 1.8s infinite ease-in-out' : 'none',
+        }}
+      />
       {children}
     </span>
   );
-}
+};

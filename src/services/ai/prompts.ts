@@ -1,74 +1,61 @@
 /**
- * Placeholder prompt templates for Gemma 4 31B IT (`gemma-4-31b-it`).
- *
- * Phase 1 scope: short, readable templates plus the required output shape.
- * No prompt engineering, no API calls, no secrets. These are imported only by
- * the server-only `gemma.ts` in Phase 3.
+ * BUTCHER PROTOCOL — Gemma 4 31B IT Prompt Templates
+ * Model identifier: gemma-4-31b-it
+ * 
+ * Target Architecture:
+ * - Structured JSON output only.
+ * - Deterministic scoring is calculated by application logic, NOT by the LLM.
+ * - Absolute integrity: zero hallucination/fabrication of candidate qualifications.
  */
 
-export const GEMMA_MODEL = 'gemma-4-31b-it';
+export const GEMMA_MODEL_IDENTIFIER = 'gemma-4-31b-it';
 
-/**
- * Structured output contract every prompt must hold the model to.
- * The model extracts; it never computes a match percentage.
- */
-export const STRUCTURED_OUTPUT_CONTRACT = `Respond with a single JSON object and nothing else. No prose, no markdown fences.
-Required shape:
-{
-  "role": "",
-  "company": "",
-  "requiredSkills": [],
-  "preferredSkills": [],
-  "experience": "",
-  "education": "",
-  "location": "",
-  "employmentType": "",
-  "summary": "",
-  "responsibilities": []
-}
-Fill every field from the job description. Never leave a field empty unless the description truly does not state it.
-Rules:
-- Arrays contain short skill names exactly as written in the job description.
-- Never invent a skill, employer, degree, date or number that is not stated.
-- Never output a match percentage, score or rating.`;
+export const SYSTEM_INTELLIGENCE_DIRECTIVE = `
+YOU ARE BUTCHER PROTOCOL CAREER INTELLIGENCE CORE (MODEL: ${GEMMA_MODEL_IDENTIFIER}).
+You operate under strict tactical extraction protocols:
+1. OUTPUT STRUCTURED JSON ONLY. Do not prepend markdown formatting, explanations, or commentary outside the JSON block.
+2. ZERO FABRICATION POLICY: Never hallucinate skills, certifications, work experiences, or degrees. Only synthesize and refine genuine candidate inputs.
+3. SCORING RESTRICTION: Do not calculate final composite match percentages. Extract criteria cleanly; deterministic application logic executes algorithmic score calculations.
+`.trim();
 
-export function buildAnalyzeJobPrompt(jobDescription: string, roleHint?: string, companyHint?: string): string {
-  const context = [
-    roleHint ? `Role hint from the operator: ${roleHint}` : '',
-    companyHint ? `Company hint from the operator: ${companyHint}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
+export const analyzeJobPrompt = (jobDescription: string): string => `
+${SYSTEM_INTELLIGENCE_DIRECTIVE}
 
-  return `Extract structured hiring requirements from the job description below.
-${context ? `\n${context}\n` : ''}
-${STRUCTURED_OUTPUT_CONTRACT}
+TASK: Extract structured intelligence from the following job target description.
 
-JOB DESCRIPTION:
+TARGET INTEL:
 """
 ${jobDescription}
-"""`;
-}
-
-export function buildTailorResumePrompt(baseResume: string, jobDescription: string, jobAnalysis: string): string {
-  return `Tailor the resume below to the job description.
-Reorder, reword and emphasise what the operator genuinely has.
-Never fabricate experience, skills, employers, degrees or dates.
-Never add a claim that is not already supported by the base resume.
-
-Return a single JSON object with exactly these keys:
-{
-  "summary": "",
-  "experience": [{ "company": "", "role": "", "period": "", "points": [""] }],
-  "skills": [""],
-  "education": "",
-  "projects": [""]
-}
-Fill every key. No prose, no markdown fences.
-
-TARGET JOB ANALYSIS:
 """
-${jobAnalysis}
+
+EXPECTED JSON SCHEMA:
+{
+  "role": "Extracted exact role title",
+  "company": "Company or organization name",
+  "requiredSkills": ["Skill 1", "Skill 2"],
+  "preferredSkills": ["Skill 1", "Skill 2"],
+  "experience": "Years and level of required experience",
+  "education": "Degree requirements or equivalent experience",
+  "location": "Geographic location or remote specification",
+  "employmentType": "Full-time / Contract / Internship",
+  "summary": "Concise 2-sentence executive summary of the target role",
+  "keyResponsibilities": ["Duty 1", "Duty 2", "Duty 3"]
+}
+`.trim();
+
+export const tailorResumePrompt = (
+  candidateProfile: string,
+  baseResume: string,
+  jobDescription: string
+): string => `
+${SYSTEM_INTELLIGENCE_DIRECTIVE}
+
+TASK: Forge a targeted resume tailored to the specific target requisition.
+ETHICAL CONSTRAINT: Strictly reorder and highlight genuine candidate competencies. NEVER introduce false past employers, non-existent projects, or unearned credentials.
+
+CANDIDATE BASE PROFILE:
+"""
+${candidateProfile}
 """
 
 BASE RESUME:
@@ -76,39 +63,85 @@ BASE RESUME:
 ${baseResume}
 """
 
-JOB DESCRIPTION:
+TARGET JOB REQUISITION:
 """
 ${jobDescription}
-"""`;
-}
+"""
 
-export function buildAnalyzeATSPrompt(resume: string, jobDescription: string, jobAnalysis: string): string {
-  return `Compare the resume below against the job description.
-Report keywords and skills you can actually observe on both sides.
-Do not output a score, percentage, rating or verdict — those are computed separately.
-
-Return a single JSON object with exactly these keys:
+EXPECTED JSON SCHEMA:
 {
-  "matchedKeywords": [""],
-  "missingKeywords": [""],
-  "matchedSkills": [""],
-  "missingSkills": [""],
-  "observations": [""]
+  "targetRole": "Role title",
+  "targetCompany": "Target organization",
+  "candidateName": "Candidate full name",
+  "headline": "High-impact tactical headline",
+  "summary": "Tailored career summary aligning genuine background to target requirements",
+  "tailoredSkills": ["Prioritized genuine skills matching the target role"],
+  "experienceHighlights": [
+    {
+      "title": "Role Title",
+      "company": "Company Name",
+      "period": "Start - End Date",
+      "highlights": ["Tailored bullet emphasizing genuine impact relevant to target"]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project Name",
+      "tech": ["Python", "PyTorch"],
+      "description": "Clear problem statement and architecture",
+      "outcomes": ["Quantifiable result or metric"]
+    }
+  ],
+  "education": {
+    "degree": "Verified Degree",
+    "institution": "Verified Institution",
+    "year": "Graduation Year"
+  },
+  "integrityVerified": true
 }
-Fill every key. No prose, no markdown fences.
+`.trim();
 
-TARGET JOB ANALYSIS:
+export const analyzeATSPrompt = (
+  resumeText: string,
+  jobDescription: string
+): string => `
+${SYSTEM_INTELLIGENCE_DIRECTIVE}
+
+TASK: Conduct deep keyword and qualification gap extraction between the candidate resume and target requisition.
+LABELING: This analysis serves as an INTERNAL COMPATIBILITY ESTIMATE.
+
+CANDIDATE RESUME:
 """
-${jobAnalysis}
+${resumeText}
 """
 
-RESUME:
-"""
-${resume}
-"""
-
-JOB DESCRIPTION:
+TARGET REQUISITION:
 """
 ${jobDescription}
-"""`;
+"""
+
+EXPECTED JSON SCHEMA:
+{
+  "matchedSkills": ["Explicitly matched skills found in both"],
+  "missingSkills": ["Skills demanded by target but absent in candidate profile"],
+  "keywordCoverageEstimate": 85,
+  "recommendations": [
+    "Concrete, honest suggestions to highlight genuine relevant experience",
+    "Formatting or technical keyword optimization guidance"
+  ],
+  "diagnosticNotes": [
+    {
+      "category": "CRITICAL",
+      "message": "Missing core requirement: e.g. Distributed Systems experience"
+    },
+    {
+      "category": "OPTIMIZATION",
+      "message": "Project descriptions could emphasize throughput metrics"
+    },
+    {
+      "category": "PASSED",
+      "message": "Python, PyTorch, and Docker experience verified in profile"
+    }
+  ]
 }
+`.trim();

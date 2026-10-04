@@ -1,410 +1,576 @@
-import { useMemo, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { Check, Pencil, RotateCcw, X } from 'lucide-react';
-import type { CareerProfile, WorkMode } from '@/types';
-import { formatDate } from '@/lib/matching';
-import { Button } from '@/components/ui/Button';
-import { Field, InlineMessage } from '@/components/ui/Inputs';
-import { Panel, PanelBody, PanelHeader } from '@/components/ui/Panel';
-import { useAppState } from '@/state/AppStateContext';
+import React, { useState } from 'react';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import {
+  GraduationCap,
+  Link as LinkIcon,
+  Save,
+  CheckCircle2,
+  Shield,
+  X,
+} from 'lucide-react';
+import { INITIAL_USER_PROFILE, type UserCareerProfile } from '../data/mockProfile';
 
-type SectionKey = keyof CareerProfile;
+export const ProfilePage: React.FC = () => {
+  const [profile, setProfile] = useState<UserCareerProfile>(INITIAL_USER_PROFILE);
+  const [isSaved, setIsSaved] = useState(false);
 
-const SECTIONS: { key: SectionKey; label: string; hint: string }[] = [
-  { key: 'personal', label: 'Personal', hint: 'Operator identity' },
-  { key: 'education', label: 'Education', hint: 'Academic record' },
-  { key: 'skills', label: 'Skills', hint: 'Genuine capabilities' },
-  { key: 'careerTargets', label: 'Career Targets', hint: 'Desired direction' },
-  { key: 'links', label: 'Links', hint: 'Public presence' },
-];
-
-export function ProfilePage() {
-  const reduced = useReducedMotion();
-  const { profile, saveProfile, jobs, storageAvailable, resetLocalData } = useAppState();
-  const [draft, setDraft] = useState<CareerProfile>(profile);
-  const [editing, setEditing] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
-
-  const changed = useMemo(() => JSON.stringify(draft) !== JSON.stringify(profile), [draft, profile]);
-
-  const startEdit = () => {
-    setDraft(profile);
-    setEditing(true);
-    setSaved(false);
+  const handleSave = () => {
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 3000);
   };
 
-  const cancel = () => {
-    setDraft(profile);
-    setEditing(false);
-  };
-
-  const commit = () => {
-    saveProfile(draft);
-    setEditing(false);
-    setSaved(true);
-  };
-
-  const update = <K extends SectionKey>(section: K, patch: Partial<CareerProfile[K]>) => {
-    setDraft((current) => ({ ...current, [section]: { ...current[section], ...patch } }));
-  };
-
-  const updateList = (section: 'skills', key: keyof CareerProfile['skills'], value: string) => {
-    const list = draft[section][key].filter((item) => item.trim() !== '');
-    update(section, { [key]: value ? [...list, value] : list } as Partial<CareerProfile['skills']>);
-  };
-
-  const removeListItem = (section: 'skills', key: keyof CareerProfile['skills'], item: string) => {
-    update(section, { [key]: draft[section][key].filter((entry) => entry !== item) } as Partial<CareerProfile['skills']>);
+  const handleRemoveSkill = (cat: keyof UserCareerProfile['skills'], skillToRemove: string) => {
+    setProfile((prev) => ({
+      ...prev,
+      skills: {
+        ...prev.skills,
+        [cat]: prev.skills[cat].filter((s) => s !== skillToRemove),
+      },
+    }));
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <p className="max-w-2xl text-sm leading-relaxed text-secondary">
-          This profile is the single source of every match score in the product. Add or remove a skill here and all{' '}
-          <span className="u-num text-primary">{jobs.length}</span> targets re-score immediately.
-        </p>
-        <div className="flex items-center gap-2">
-          {editing ? (
-            <>
-              <Button onClick={cancel} disabled={!changed}>
-                <X aria-hidden="true" className="h-3.5 w-3.5" />
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={commit} disabled={!changed}>
-                <Check aria-hidden="true" className="h-3.5 w-3.5" />
-                Save Profile
-              </Button>
-            </>
-          ) : (
-            <>
-              {saved ? (
-                <span className="font-display text-[0.6875rem] uppercase tracking-[0.14em] text-success">
-                  Saved locally
-                </span>
-              ) : null}
-              <Button onClick={startEdit}>
-                <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
-                Edit Profile
-              </Button>
-            </>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Top Header */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+        }}
+      >
+        <div>
+          <h2
+            style={{
+              margin: '0 0 4px 0',
+              fontFamily: 'var(--font-heading)',
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--text-primary)',
+            }}
+          >
+            OPERATOR CAREER INTELLIGENCE DOSSIER
+          </h2>
+          <p
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem',
+              color: 'var(--text-muted)',
+            }}
+          >
+            VERIFIED BASELINE DATA // USED BY DETERMINISTIC SCORING & RESUME FORGING
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {isSaved && (
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.75rem',
+                color: 'var(--success-green)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <CheckCircle2 size={14} />
+              PROFILE DOSSIER SAVED
+            </span>
           )}
+
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Save size={14} />}
+            onClick={handleSave}
+          >
+            COMMIT CHANGES
+          </Button>
         </div>
       </div>
 
-      {!storageAvailable ? (
-        <InlineMessage
-          tone="error"
-          title="Browser storage unavailable"
-          detail="This browser is blocking local storage, so your profile will reset when you close the tab. Everything else still works for this session."
-        />
-      ) : null}
-
-      <motion.div layout={!reduced} className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        {SECTIONS.map((section) => (
-          <motion.div
-            key={section.key}
-            layout={!reduced}
-            initial={{ opacity: 0, y: reduced ? 0 : 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Panel className="h-full">
-              <PanelHeader label={section.label} hint={section.hint} />
-              <PanelBody className="flex flex-col gap-4">
-                <SectionFields section={section.key} profile={draft} editing={editing} onUpdate={update} />
-
-                {section.key === 'skills' ? (
-                  <SkillEditor profile={draft} editing={editing} onAdd={updateList} onRemove={removeListItem} />
-                ) : null}
-              </PanelBody>
-            </Panel>
-          </motion.div>
-        ))}
-
-        <Panel className="h-fit">
-          <PanelHeader label="Record" hint="Local data" />
-          <PanelBody>
-            <dl className="flex flex-col gap-2.5 text-[0.8125rem]">
-              <MetaRow label="Declared skills" value={String(allSkills(draft).length)} />
-              <MetaRow label="Targets scored" value={String(jobs.length)} />
-              <MetaRow label="Persistence" value={storageAvailable ? 'Browser local storage' : 'Session only'} />
-              <MetaRow label="Loadout" value={formatDate(new Date().toISOString())} />
-            </dl>
-            <p className="mt-4 border-t border-border-subtle pt-4 text-[0.75rem] leading-relaxed text-muted">
-              Nothing here is uploaded. Supabase persistence is scheduled for Phase 02 and will keep this same
-              shape, so the screen keeps working unchanged.
-            </p>
-
-            <div className="mt-5 border-t border-border-subtle pt-4">
-              {confirmReset ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-[0.8125rem] leading-relaxed text-secondary">
-                    This clears your profile, pasted targets, pasted documents, saved targets and operations on
-                    this machine. It cannot be undone.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => setConfirmReset(false)}>
-                      Keep My Data
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      onClick={() => {
-                        resetLocalData();
-                        setConfirmReset(false);
-                        setEditing(false);
-                        setSaved(false);
-                      }}
-                    >
-                      Erase Everything
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button size="sm" onClick={() => setConfirmReset(true)}>
-                  <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
-                  Reset Local Data
-                </Button>
-              )}
-            </div>
-          </PanelBody>
-        </Panel>
-      </motion.div>
-    </div>
-  );
-}
-
-type UpdateFn = <K extends SectionKey>(section: K, patch: Partial<CareerProfile[K]>) => void;
-
-function SectionFields({
-  section,
-  profile,
-  editing,
-  onUpdate,
-}: {
-  section: SectionKey;
-  profile: CareerProfile;
-  editing: boolean;
-  onUpdate: UpdateFn;
-}) {
-  if (section === 'personal') {
-    return (
-      <>
-        <ReadField label="Name" value={profile.personal.name} editing={editing} onChange={(name) => onUpdate('personal', { name })} />
-        <ReadField label="Email" value={profile.personal.email} editing={editing} onChange={(email) => onUpdate('personal', { email })} />
-        <ReadField label="Location" value={profile.personal.location} editing={editing} onChange={(location) => onUpdate('personal', { location })} />
-      </>
-    );
-  }
-  if (section === 'education') {
-    return (
-      <>
-        <ReadField label="Degree" value={profile.education.degree} editing={editing} onChange={(degree) => onUpdate('education', { degree })} />
-        <ReadField label="College" value={profile.education.college} editing={editing} onChange={(college) => onUpdate('education', { college })} />
-        <ReadField label="Graduation Year" value={profile.education.graduationYear} editing={editing} onChange={(graduationYear) => onUpdate('education', { graduationYear })} />
-      </>
-    );
-  }
-  if (section === 'careerTargets') {
-    return (
-      <>
-        <ListField
-          label="Desired Roles"
-          values={profile.careerTargets.desiredRoles}
-          editing={editing}
-          onChange={(desiredRoles) => onUpdate('careerTargets', { desiredRoles })}
-        />
-        <ListField
-          label="Locations"
-          values={profile.careerTargets.locations}
-          editing={editing}
-          onChange={(locations) => onUpdate('careerTargets', { locations })}
-        />
-        <Field label="Remote Preference">
-          {(id) => (
-            <select
-              id={id}
-              value={profile.careerTargets.remotePreference}
-              disabled={!editing}
-              onChange={(event) =>
-                onUpdate('careerTargets', { remotePreference: event.target.value as WorkMode })
-              }
-              className="w-full cursor-pointer rounded-[3px] border border-border-subtle bg-elevated/70 px-3 py-2.5 text-sm text-primary outline-none disabled:cursor-default focus:border-signal-dim"
-            >
-              <option value="REMOTE" className="bg-surface">Remote</option>
-              <option value="HYBRID" className="bg-surface">Hybrid</option>
-              <option value="ONSITE" className="bg-surface">On-site</option>
-            </select>
-          )}
-        </Field>
-      </>
-    );
-  }
-  if (section === 'links') {
-    return (
-      <>
-        <ReadField label="GitHub" value={profile.links.github} editing={editing} onChange={(github) => onUpdate('links', { github })} />
-        <ReadField label="LinkedIn" value={profile.links.linkedin} editing={editing} onChange={(linkedin) => onUpdate('links', { linkedin })} />
-      </>
-    );
-  }
-  return null;
-}
-
-function SkillEditor({
-  profile,
-  editing,
-  onAdd,
-  onRemove,
-}: {
-  profile: CareerProfile;
-  editing: boolean;
-  onAdd: (section: 'skills', key: keyof CareerProfile['skills'], value: string) => void;
-  onRemove: (section: 'skills', key: keyof CareerProfile['skills'], item: string) => void;
-}) {
-  const groups: { key: keyof CareerProfile['skills']; label: string }[] = [
-    { key: 'programming', label: 'Programming' },
-    { key: 'aiml', label: 'AI / ML' },
-    { key: 'data', label: 'Data' },
-    { key: 'tools', label: 'Tools' },
-  ];
-
-  return (
-    <div className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2">
-      {groups.map((group) => (
-        <SkillGroup
-          key={group.key}
-          label={group.label}
-          items={profile.skills[group.key]}
-          editing={editing}
-          onAdd={(value) => onAdd('skills', group.key, value)}
-          onRemove={(item) => onRemove('skills', group.key, item)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function SkillGroup({
-  label,
-  items,
-  editing,
-  onAdd,
-  onRemove,
-}: {
-  label: string;
-  items: string[];
-  editing: boolean;
-  onAdd: (value: string) => void;
-  onRemove: (item: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="u-label">{label}</p>
-      <ul className="flex flex-wrap gap-1.5">
-        {items.map((item) => (
-          <li key={item}>
-            <span className="inline-flex items-center gap-1.5 rounded-[2px] border border-border-subtle bg-elevated/60 px-2 py-[3px] text-[0.6875rem] text-secondary">
-              {item}
-              {editing ? (
-                <button
-                  type="button"
-                  onClick={() => onRemove(item)}
-                  aria-label={`Remove ${item}`}
-                  className="text-muted transition-colors hover:text-signal"
+      {/* Grid of Profile Sections */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gap: '24px',
+        }}
+      >
+        {/* PERSONAL SECTION */}
+        <Card headerLabel="1. PERSONAL IDENTIFIER" padding="md" hasBrackets>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(225, 29, 56, 0.15)',
+                  border: '1px solid var(--signal-red)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--signal-red)',
+                }}
+              >
+                <Shield size={22} />
+              </div>
+              <div>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    display: 'block',
+                  }}
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              ) : null}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {editing ? (
-        <input
-          type="text"
-          placeholder={`Add ${label.toLowerCase()} skill`}
-          aria-label={`Add ${label} skill`}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter') return;
-            event.preventDefault();
-            const value = event.currentTarget.value.trim();
-            if (!value) return;
-            onAdd(value);
-            event.currentTarget.value = '';
+                  {profile.personal.fullName}
+                </span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.72rem',
+                    color: 'var(--signal-red)',
+                  }}
+                >
+                  {profile.personal.securityBadge} // {profile.personal.clearanceStatus}
+                </span>
+              </div>
+            </div>
+
+            <Input
+              label="FULL NAME"
+              value={profile.personal.fullName}
+              onChange={(e) =>
+                setProfile({ ...profile, personal: { ...profile.personal, fullName: e.target.value } })
+              }
+            />
+
+            <Input
+              label="COMMUNICATION EMAIL"
+              type="email"
+              value={profile.personal.email}
+              onChange={(e) =>
+                setProfile({ ...profile, personal: { ...profile.personal, email: e.target.value } })
+              }
+            />
+
+            <Input
+              label="PRIMARY LOCATION"
+              value={profile.personal.location}
+              onChange={(e) =>
+                setProfile({ ...profile, personal: { ...profile.personal, location: e.target.value } })
+              }
+            />
+
+            <div>
+              <label
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: 'var(--text-muted)',
+                  display: 'block',
+                  marginBottom: '6px',
+                }}
+              >
+                OPERATIONAL BIO / EXECUTIVE SUMMARY
+              </label>
+              <textarea
+                rows={3}
+                value={profile.personal.bio}
+                onChange={(e) =>
+                  setProfile({ ...profile, personal: { ...profile.personal, bio: e.target.value } })
+                }
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 14px',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.88rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* EDUCATION SECTION */}
+        <Card headerLabel="2. ACADEMIC CREDENTIALS" padding="md" hasBrackets>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <GraduationCap size={18} color="var(--intel-blue)" />
+              <span
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                VERIFIED HIGHER EDUCATION
+              </span>
+            </div>
+
+            <Input
+              label="DEGREE & MAJOR"
+              value={profile.education.degree}
+              onChange={(e) =>
+                setProfile({ ...profile, education: { ...profile.education, degree: e.target.value } })
+              }
+            />
+
+            <Input
+              label="INSTITUTION / UNIVERSITY"
+              value={profile.education.college}
+              onChange={(e) =>
+                setProfile({ ...profile, education: { ...profile.education, college: e.target.value } })
+              }
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Input
+                label="GRADUATION YEAR"
+                value={profile.education.graduationYear}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    education: { ...profile.education, graduationYear: e.target.value },
+                  })
+                }
+              />
+
+              <Input
+                label="ACADEMIC HONORS / GPA"
+                value={profile.education.gpa}
+                onChange={(e) =>
+                  setProfile({ ...profile, education: { ...profile.education, gpa: e.target.value } })
+                }
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* CAREER TARGETS */}
+        <Card headerLabel="3. TACTICAL CAREER TARGETS" padding="md" hasBrackets>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: 'var(--text-muted)',
+                  display: 'block',
+                  marginBottom: '8px',
+                }}
+              >
+                DESIRED ROLES
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {profile.careerTargets.desiredRoles.map((role, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.74rem',
+                      backgroundColor: 'rgba(31, 31, 38, 0.6)',
+                      border: '1px solid var(--border-strong)',
+                      padding: '3px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {role}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label
+                  style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                    marginBottom: '6px',
+                  }}
+                >
+                  WORKPLACE PREFERENCE
+                </label>
+                <select
+                  value={profile.careerTargets.remotePreference}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      careerTargets: {
+                        ...profile.careerTargets,
+                        remotePreference: e.target.value as UserCareerProfile['careerTargets']['remotePreference'],
+                      },
+                    })
+                  }
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontFamily: 'var(--font-heading)',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="Remote">REMOTE FIRST</option>
+                  <option value="Hybrid">HYBRID</option>
+                  <option value="Flexible">FLEXIBLE</option>
+                  <option value="On-site">ON-SITE</option>
+                </select>
+              </div>
+
+              <Input
+                label="MINIMUM TARGET COMP"
+                value={profile.careerTargets.minimumCompensation}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    careerTargets: { ...profile.careerTargets, minimumCompensation: e.target.value },
+                  })
+                }
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* EXTERNAL VERIFIED LINKS */}
+        <Card headerLabel="4. EXTERNAL VERIFIED LINKS" padding="md" hasBrackets>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <Input
+              label="GITHUB REPOSITORY / CODE PROFILE"
+              value={profile.links.github}
+              icon={<LinkIcon size={14} />}
+              onChange={(e) =>
+                setProfile({ ...profile, links: { ...profile.links, github: e.target.value } })
+              }
+            />
+
+            <Input
+              label="LINKEDIN INTELLIGENCE DOSSIER"
+              value={profile.links.linkedin}
+              icon={<LinkIcon size={14} />}
+              onChange={(e) =>
+                setProfile({ ...profile, links: { ...profile.links, linkedin: e.target.value } })
+              }
+            />
+
+            <Input
+              label="SYSTEM PORTFOLIO / TECHNICAL BLOG"
+              value={profile.links.portfolio}
+              icon={<LinkIcon size={14} />}
+              onChange={(e) =>
+                setProfile({ ...profile, links: { ...profile.links, portfolio: e.target.value } })
+              }
+            />
+          </div>
+        </Card>
+      </div>
+
+      {/* SKILLS SECTION (Full Width) */}
+      <Card headerLabel="5. TECHNICAL COMPETENCIES // SKILL MATRIX" padding="md" hasBrackets>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '20px',
           }}
-          className="rounded-[3px] border border-border-subtle bg-elevated/70 px-2.5 py-1.5 text-[0.75rem] text-primary placeholder:text-muted/70 outline-none focus:border-signal-dim"
-        />
-      ) : null}
+        >
+          {/* Programming Languages */}
+          <div>
+            <div
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                color: 'var(--signal-red)',
+                marginBottom: '10px',
+              }}
+            >
+              PROGRAMMING & SYSTEMS
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {profile.skills.programming.map((s) => (
+                <span
+                  key={s}
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.74rem',
+                    backgroundColor: 'rgba(19, 19, 24, 0.8)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {s}
+                  <X
+                    size={11}
+                    style={{ cursor: 'pointer', color: 'var(--text-muted)' }}
+                    onClick={() => handleRemoveSkill('programming', s)}
+                  />
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* AI/ML Stack */}
+          <div>
+            <div
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                color: 'var(--warning-amber)',
+                marginBottom: '10px',
+              }}
+            >
+              AI / ML / INFERENCE RUNTIMES
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {profile.skills.aiml.map((s) => (
+                <span
+                  key={s}
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.74rem',
+                    backgroundColor: 'rgba(19, 19, 24, 0.8)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {s}
+                  <X
+                    size={11}
+                    style={{ cursor: 'pointer', color: 'var(--text-muted)' }}
+                    onClick={() => handleRemoveSkill('aiml', s)}
+                  />
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Data Infrastructure */}
+          <div>
+            <div
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                color: 'var(--intel-blue)',
+                marginBottom: '10px',
+              }}
+            >
+              DATA & STORAGE LAYERS
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {profile.skills.data.map((s) => (
+                <span
+                  key={s}
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.74rem',
+                    backgroundColor: 'rgba(19, 19, 24, 0.8)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {s}
+                  <X
+                    size={11}
+                    style={{ cursor: 'pointer', color: 'var(--text-muted)' }}
+                    onClick={() => handleRemoveSkill('data', s)}
+                  />
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Infrastructure & Tools */}
+          <div>
+            <div
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                color: 'var(--success-green)',
+                marginBottom: '10px',
+              }}
+            >
+              INFRASTRUCTURE & ORCHESTRATION
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {profile.skills.tools.map((s) => (
+                <span
+                  key={s}
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.74rem',
+                    backgroundColor: 'rgba(19, 19, 24, 0.8)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {s}
+                  <X
+                    size={11}
+                    style={{ cursor: 'pointer', color: 'var(--text-muted)' }}
+                    onClick={() => handleRemoveSkill('tools', s)}
+                  />
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
   );
-}
-
-function ReadField({
-  label,
-  value,
-  editing,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  editing: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <Field label={label}>
-      {(id) => (
-        <input
-          id={id}
-          type="text"
-          value={value}
-          disabled={!editing}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-[3px] border border-border-subtle bg-elevated/70 px-3 py-2.5 text-sm text-primary outline-none disabled:cursor-default disabled:bg-transparent disabled:text-secondary focus:border-signal-dim focus:shadow-[0_0_0_3px_rgba(225,29,56,0.12)]"
-        />
-      )}
-    </Field>
-  );
-}
-
-function ListField({
-  label,
-  values,
-  editing,
-  onChange,
-}: {
-  label: string;
-  values: string[];
-  editing: boolean;
-  onChange: (values: string[]) => void;
-}) {
-  return (
-    <Field label={label}>
-      {(id) => (
-        <input
-          id={id}
-          type="text"
-          value={values.join(', ')}
-          disabled={!editing}
-          onChange={(event) => onChange(event.target.value.split(',').map((value) => value.trim()))}
-          className="w-full rounded-[3px] border border-border-subtle bg-elevated/70 px-3 py-2.5 text-sm text-primary outline-none disabled:cursor-default disabled:bg-transparent disabled:text-secondary focus:border-signal-dim focus:shadow-[0_0_0_3px_rgba(225,29,56,0.12)]"
-        />
-      )}
-    </Field>
-  );
-}
-
-function MetaRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="font-display text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-muted">{label}</dt>
-      <dd className="text-secondary">{value}</dd>
-    </div>
-  );
-}
-
-function allSkills(profile: CareerProfile): string[] {
-  return [...profile.skills.programming, ...profile.skills.aiml, ...profile.skills.data, ...profile.skills.tools];
-}
+};

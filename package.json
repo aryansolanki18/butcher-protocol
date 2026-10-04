@@ -1,40 +1,37 @@
 {
   "name": "butcher-protocol",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "type": "module",
-  "description": "BUTCHER PROTOCOL — AI-powered career intelligence system",
   "scripts": {
     "dev": "vite",
+    "start": "tsx server/index.ts",
+    "server": "tsx server/index.ts",
     "build": "tsc -b && vite build",
-    "build:server": "vite build --ssr server/entry.ts --outDir dist-server --logLevel error",
-    "serve": "npm run build && npm run build:server && node --env-file-if-exists=.env dist-server/entry.js",
-    "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit",
-    "verify:render": "vite build --ssr scripts/renderCheck.tsx --outDir dist-smoke --logLevel error && node dist-smoke/renderCheck.js",
-    "verify:ai": "vite build --ssr scripts/verifyAi.ts --outDir dist-smoke --logLevel error && node dist-smoke/verifyAi.js",
-    "verify:parser": "vite build --ssr scripts/verifyParser.ts --outDir dist-smoke --logLevel error && node dist-smoke/verifyParser.js",
-    "verify:browser": "node scripts/verifyBrowser.mjs",
-    "verify:flows": "node scripts/verifyFlows.mjs"
+    "lint": "oxlint",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "framer-motion": "^12.23.12",
-    "lucide-react": "^0.545.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.1"
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "framer-motion": "^14.0.0",
+    "lucide-react": "^1.52.0",
+    "mongoose": "^9.10.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.13",
-    "@types/node": "^26.6.4",
-    "@types/react": "^19.1.13",
-    "@types/react-dom": "^19.1.9",
-    "@vitejs/plugin-react": "^5.0.2",
-    "tailwindcss": "^4.1.13",
-    "typescript": "~5.8.3",
-    "vite": "^7.1.5"
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
   }
 }

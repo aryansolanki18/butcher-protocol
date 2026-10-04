@@ -1,139 +1,279 @@
-import { useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { X } from 'lucide-react';
-import { NAV_ITEMS } from '@/lib/nav';
+import React from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Radio,
+  Database,
+  FileText,
+  ScanLine,
+  Kanban,
+  UserCheck,
+  Settings,
+  LogOut,
+  Target,
+} from 'lucide-react';
+import { Badge } from '../ui/Badge';
 
 interface SidebarProps {
-  open: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ open, onClose }: SidebarProps) {
-  const location = useLocation();
-  const reduced = useReducedMotion();
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    onClose();
-    // Close the drawer on navigation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
-
-  const content = (
-    <div className="flex h-full flex-col">
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border-subtle px-5">
-        <NavLink to="/dashboard" className="group flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="grid h-8 w-8 place-items-center rounded-[3px] border border-signal-dim bg-signal/10 transition-colors group-hover:bg-signal/20"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="var(--signal-red)" strokeWidth="2">
-              <path d="M5 5h4v9h8v5H5z" strokeLinejoin="round" />
-              <circle cx="18" cy="8" r="3.2" />
-            </svg>
-          </span>
-          <span className="leading-tight">
-            <span className="block font-display text-[0.8125rem] font-bold uppercase tracking-[0.16em] text-primary">
-              Butcher
-            </span>
-            <span className="block font-display text-[0.5625rem] font-semibold uppercase tracking-[0.24em] text-signal">
-              Protocol
-            </span>
-          </span>
-        </NavLink>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close navigation"
-          className="grid h-9 w-9 place-items-center rounded-[3px] border border-border-subtle text-muted hover:text-primary lg:hidden"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      <nav aria-label="Primary" className="flex-1 overflow-y-auto px-3 py-4">
-        <p className="px-3 pb-3 font-display text-[0.5625rem] font-semibold uppercase tracking-[0.24em] text-muted/70">
-          Modules
-        </p>
-        <ul className="flex flex-col gap-0.5">
-          {NAV_ITEMS.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                className={({ isActive }) =>
-                  [
-                    'group relative flex min-h-10 items-center gap-3 rounded-[3px] pl-3 pr-2 transition-colors duration-150 ease-out',
-                    'before:absolute before:inset-y-1.5 before:left-0 before:w-[2px] before:rounded-full before:bg-signal before:opacity-0 before:transition-opacity before:duration-150',
-                    isActive
-                      ? 'bg-elevated text-primary before:opacity-100'
-                      : 'text-secondary hover:bg-elevated/60 hover:text-primary before:opacity-0',
-                  ].join(' ')
-                }
-              >
-                <item.icon
-                  aria-hidden="true"
-                  className="h-4 w-4 shrink-0 text-muted transition-colors group-hover:text-signal"
-                  strokeWidth={1.7}
-                />
-                <span className="flex-1 font-display text-[0.75rem] font-semibold uppercase tracking-[0.1em]">
-                  {item.label}
-                </span>
-                {item.placeholder ? (
-                  <span className="rounded-[2px] border border-border-subtle px-1.5 py-px font-display text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-muted">
-                    P1
-                  </span>
-                ) : null}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      <div className="shrink-0 border-t border-border-subtle px-5 py-4">
-        <p className="font-display text-[0.5625rem] font-semibold uppercase tracking-[0.2em] text-muted/70">
-          Phase 01 — Development data
-        </p>
-        <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-muted">
-          Frontend MVP. Gemma 4 31B IT integration is prepared but not yet active.
-        </p>
-      </div>
-    </div>
-  );
+  const navItems = [
+    { label: 'COMMAND CENTER', path: '/dashboard', icon: <LayoutDashboard size={18} /> },
+    { label: 'INTEL FEED', path: '/intel-feed', icon: <Radio size={18} /> },
+    { label: 'TARGET DATABASE', path: '/target-database', icon: <Database size={18} /> },
+    { label: 'IDENTITY FORGE', path: '/identity-forge', icon: <FileText size={18} /> },
+    { label: 'PROTOCOL SCAN', path: '/protocol-scan', icon: <ScanLine size={18} /> },
+    { label: 'OPERATION STATUS', path: '/operations', icon: <Kanban size={18} /> },
+    { label: 'CAREER PROFILE', path: '/profile', icon: <UserCheck size={18} /> },
+    { label: 'SYSTEM SETTINGS', path: '/settings', icon: <Settings size={18} /> },
+  ];
 
   return (
     <>
-      {/* Desktop: fixed rail */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[var(--spacing-sidebar)] border-r border-border-subtle bg-surface lg:block">
-        {content}
-      </aside>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(5, 5, 6, 0.8)',
+            backdropFilter: 'blur(3px)',
+            zIndex: 40,
+            display: 'block',
+          }}
+          className="md-hidden"
+        />
+      )}
 
-      {/* Mobile: drawer */}
-      <AnimatePresence>
-        {open ? (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <motion.button
-              type="button"
-              aria-label="Close navigation"
-              onClick={onClose}
-              className="absolute inset-0 bg-black/70"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            />
-            <motion.aside
-              aria-label="Primary"
-              className="absolute inset-y-0 left-0 w-[min(85vw,var(--spacing-sidebar))] border-r border-border-subtle bg-surface"
-              initial={reduced ? { opacity: 0 } : { x: '-100%' }}
-              animate={reduced ? { opacity: 1 } : { x: 0 }}
-              exit={reduced ? { opacity: 0 } : { x: '-100%' }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {content}
-            </motion.aside>
+      <aside
+        style={{
+          width: '260px',
+          backgroundColor: 'var(--bg-surface)',
+          borderRight: '1px solid var(--border-subtle)',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          transition: 'transform 0.25s ease-in-out',
+        }}
+        className={`app-sidebar ${isOpen ? 'sidebar-open' : ''}`}
+      >
+        {/* Brand Header */}
+        <div
+          style={{
+            padding: '20px 18px',
+            borderBottom: '1px solid var(--border-subtle)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              backgroundColor: 'rgba(225, 29, 56, 0.12)',
+              border: '1px solid var(--signal-red)',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--signal-red)',
+              flexShrink: 0,
+            }}
+          >
+            <Target size={18} />
           </div>
-        ) : null}
-      </AnimatePresence>
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                color: 'var(--text-primary)',
+              }}
+            >
+              BUTCHER
+            </span>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.62rem',
+                letterSpacing: '0.18em',
+                color: 'var(--signal-red)',
+                fontWeight: 600,
+              }}
+            >
+              PROTOCOL // V1.0
+            </span>
+          </div>
+        </div>
+
+        {/* System Status Banner */}
+        <div
+          style={{
+            padding: '10px 18px',
+            backgroundColor: 'rgba(5, 5, 6, 0.6)',
+            borderBottom: '1px solid var(--border-subtle)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Badge variant="ONLINE" size="xs" pulse>
+            PROTOCOL ONLINE
+          </Badge>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.65rem',
+              color: 'var(--text-muted)',
+            }}
+          >
+            NODE:US-WEST
+          </span>
+        </div>
+
+        {/* Navigation Items */}
+        <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-heading)',
+              fontSize: '0.65rem',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              padding: '6px 12px',
+            }}
+          >
+            INTELLIGENCE MODULES
+          </div>
+
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              onClick={onClose}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '9px 14px',
+                textDecoration: 'none',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                borderRadius: 'var(--radius-sm)',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                backgroundColor: isActive ? 'var(--bg-elevated)' : 'transparent',
+                borderLeft: isActive ? '3px solid var(--signal-red)' : '3px solid transparent',
+                borderTop: '1px solid',
+                borderRight: '1px solid',
+                borderBottom: '1px solid',
+                borderColor: isActive ? 'var(--border-strong)' : 'transparent',
+                transition: 'all 0.15s ease-out',
+              })}
+            >
+              <span style={{ color: 'inherit', display: 'flex' }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Footer Area */}
+        <div
+          style={{
+            padding: '16px',
+            borderTop: '1px solid var(--border-subtle)',
+            backgroundColor: 'rgba(5, 5, 6, 0.4)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div
+            style={{
+              padding: '8px 10px',
+              backgroundColor: 'rgba(19, 19, 24, 0.7)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.62rem',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                AI MODEL READY
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.62rem',
+                  color: 'var(--intel-blue)',
+                  fontWeight: 600,
+                }}
+              >
+                PHASE 3
+              </span>
+            </div>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.72rem',
+                color: 'var(--text-primary)',
+                fontWeight: 600,
+              }}
+            >
+              gemma-4-31b-it
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Badge variant="DEVELOPMENT" size="xs">
+              DEVELOPMENT DATA
+            </Badge>
+
+            <button
+              onClick={() => navigate('/login')}
+              title="Terminate session"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '0.7rem',
+                fontFamily: 'var(--font-heading)',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--signal-red)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              <LogOut size={13} />
+              <span>EXIT</span>
+            </button>
+          </div>
+        </div>
+      </aside>
     </>
   );
-}
+};

@@ -1,86 +1,152 @@
-import { useEffect } from 'react';
-import type { ReactNode } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-interface ModalProps {
-  open: boolean;
+export interface ModalProps {
+  isOpen: boolean;
   onClose: () => void;
   title: string;
   subtitle?: string;
-  children: ReactNode;
-  footer?: ReactNode;
-  wide?: boolean;
+  children: React.ReactNode;
+  maxWidth?: string;
 }
 
-export function Modal({ open, onClose, title, subtitle, children, footer, wide = false }: ModalProps) {
-  const reduced = useReducedMotion();
-
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  children,
+  maxWidth = '680px',
+}) => {
   useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
     };
-    window.addEventListener('keydown', onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    }
     return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open, onClose]);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6">
-          <motion.button
-            type="button"
-            aria-label="Close dialog"
-            onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-[2px]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          />
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.985 }}
-            animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-            exit={reduced ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.99 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className={`relative my-4 w-full rounded-[5px] border border-border-strong bg-elevated u-shadow-panel ${
-              wide ? 'max-w-4xl' : 'max-w-2xl'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-6 border-b border-border-subtle px-5 py-4 sm:px-6">
-              <div>
-                <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-primary">
-                  {title}
-                </h2>
-                {subtitle ? <p className="mt-1 text-xs text-muted">{subtitle}</p> : null}
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close dialog"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-[3px] border border-border-subtle text-muted transition-colors hover:border-border-strong hover:text-primary"
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        backgroundColor: 'rgba(5, 5, 6, 0.85)',
+        backdropFilter: 'blur(4px)',
+        animation: 'fadeIn 0.2s ease-out',
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="tactical-brackets tactical-brackets-red"
+        style={{
+          width: '100%',
+          maxWidth,
+          backgroundColor: 'var(--bg-elevated)',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-sm)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(225, 29, 56, 0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '90vh',
+          overflow: 'hidden',
+          animation: 'scaleUp 0.2s ease-out',
+        }}
+      >
+        {/* Modal Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border-subtle)',
+            backgroundColor: 'rgba(5, 5, 6, 0.6)',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  backgroundColor: 'var(--signal-red)',
+                  display: 'inline-block',
+                }}
+              />
+              <h3
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: '1rem',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-primary)',
+                }}
               >
-                <X className="h-4 w-4" />
-              </button>
+                {title}
+              </h3>
             </div>
-            <div className="px-5 py-5 sm:px-6">{children}</div>
-            {footer ? (
-              <div className="flex flex-wrap justify-end gap-2 border-t border-border-subtle px-5 py-4 sm:px-6">
-                {footer}
-              </div>
-            ) : null}
-          </motion.div>
+            {subtitle && (
+              <p
+                style={{
+                  margin: '4px 0 0 14px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                {subtitle}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={onClose}
+            aria-label="Close modal"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              padding: '6px',
+              borderRadius: 'var(--radius-sm)',
+              transition: 'color 0.15s, background-color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--text-primary)';
+              e.currentTarget.style.backgroundColor = 'var(--border-subtle)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-muted)';
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <X size={18} />
+          </button>
         </div>
-      ) : null}
-    </AnimatePresence>
+
+        {/* Modal Content */}
+        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>{children}</div>
+      </div>
+    </div>
   );
-}
+};

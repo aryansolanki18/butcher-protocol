@@ -1,200 +1,250 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { TextInput } from '@/components/ui/Inputs';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Target, Lock, Mail, ArrowRight, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
 
-type Mode = 'SESSION' | 'IDENTITY';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-interface Errors {
-  email?: string;
-  password?: string;
-  confirm?: string;
-}
-
-export function LoginPage() {
+export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const reduced = useReducedMotion();
+  const [email, setEmail] = useState('operator@butcherprotocol.intel');
+  const [password, setPassword] = useState('••••••••••••');
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionSuccess, setSessionSuccess] = useState(false);
 
-  const [mode, setMode] = useState<Mode>('SESSION');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    document.title = mode === 'SESSION' ? 'Initialize Session — BUTCHER PROTOCOL' : 'Create Identity — BUTCHER PROTOCOL';
-  }, [mode]);
-
-  const validate = (): Errors => {
-    const next: Errors = {};
+  const validate = () => {
+    const nextErrors: { email?: string; password?: string } = {};
     if (!email.trim()) {
-      next.email = 'Email is required.';
-    } else if (!EMAIL_PATTERN.test(email.trim())) {
-      next.email = 'Enter a valid email address.';
+      nextErrors.email = 'OPERATOR IDENTIFIER OR EMAIL REQUIRED';
+    } else if (!email.includes('@')) {
+      nextErrors.email = 'INVALID OPERATOR EMAIL FORMAT';
     }
-    if (!password) {
-      next.password = 'Password is required.';
-    } else if (mode === 'IDENTITY' && password.length < 8) {
-      next.password = 'Use at least 8 characters.';
+    if (!password.trim()) {
+      nextErrors.password = 'SECURITY PASSPHRASE REQUIRED';
+    } else if (password.length < 6) {
+      nextErrors.password = 'PASSPHRASE MUST BE AT LEAST 6 CHARACTERS';
     }
-    if (mode === 'IDENTITY') {
-      if (!displayName.trim()) next.confirm = 'Display name is required.';
-      if (confirm !== password) next.confirm = next.confirm ?? 'Passwords do not match.';
-    }
-    return next;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const found = validate();
-    setErrors(found);
-    if (Object.keys(found).length > 0) return;
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
 
-    setSubmitting(true);
-    // UI-only flow. No credentials are stored, transmitted or validated anywhere.
-    window.setTimeout(() => {
-      setSubmitting(false);
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      setSessionSuccess(true);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 700);
+    }, 1100);
+  };
+
+  const handleCreateIdentity = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
       navigate('/dashboard');
     }, 800);
   };
 
-  const switchMode = () => {
-    setMode((current) => (current === 'SESSION' ? 'IDENTITY' : 'SESSION'));
-    setErrors({});
-  };
-
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-canvas">
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: 'var(--bg-base)',
+        color: 'var(--text-primary)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        position: 'relative',
+      }}
+      className="bg-tactical-grid"
+    >
+      {/* Background Ambient Glow */}
       <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
         style={{
-          background:
-            'radial-gradient(680px 420px at 50% 0%, rgba(225,29,56,0.16), transparent 62%), linear-gradient(to bottom, rgba(5,5,6,0) 55%, var(--bg-base) 100%)',
+          position: 'absolute',
+          width: '450px',
+          height: '450px',
+          background: 'radial-gradient(circle, rgba(225, 29, 56, 0.12) 0%, transparent 70%)',
+          pointerEvents: 'none',
         }}
       />
-      <div aria-hidden="true" className="u-noise pointer-events-none absolute inset-0" />
 
-      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 font-display text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-muted transition-colors hover:text-primary"
-        >
-          <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-          Back
-        </Link>
-        <span className="font-display text-[0.625rem] font-semibold uppercase tracking-[0.2em] text-muted">
-          Phase 01 · Interface only
-        </span>
-      </header>
-
-      <main className="relative z-10 flex flex-1 items-center justify-center px-5 pb-20 pt-4 sm:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: reduced ? 0 : 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-md"
-        >
-          <div className="mb-8 text-center">
-            <span
-              aria-hidden="true"
-              className="mx-auto mb-5 grid h-11 w-11 place-items-center rounded-[3px] border border-signal-dim bg-signal/10"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="var(--signal-red)" strokeWidth="2">
-                <path d="M5 5h4v9h8v5H5z" strokeLinejoin="round" />
-                <circle cx="18" cy="8" r="3.2" />
-              </svg>
-            </span>
-            <h1 className="u-page-title">
-              {mode === 'SESSION' ? 'Initialize Session' : 'Create Identity'}
-            </h1>
-            <p className="mt-2.5 text-sm leading-relaxed text-secondary">
-              {mode === 'SESSION'
-                ? 'Authenticate to open the command center.'
-                : 'Register an operator identity for the command center.'}
-            </p>
+      <div style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 2 }}>
+        {/* Header Icon & Brand */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div
+            style={{
+              width: '46px',
+              height: '46px',
+              backgroundColor: 'rgba(225, 29, 56, 0.15)',
+              border: '1px solid var(--signal-red)',
+              borderRadius: 'var(--radius-sm)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--signal-red)',
+              marginBottom: '16px',
+            }}
+          >
+            <Target size={24} />
           </div>
 
-          <div className="rounded-[5px] border border-border-subtle bg-surface p-6 u-shadow-panel sm:p-8">
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-              {mode === 'IDENTITY' ? (
-                <TextInput
-                  label="Display Name"
-                  value={displayName}
-                  onChange={setDisplayName}
-                  placeholder="Operator name"
-                  autoComplete="name"
-                  required
-                />
-              ) : null}
+          <h1
+            style={{
+              margin: '0 0 6px 0',
+              fontFamily: 'var(--font-heading)',
+              fontSize: '1.6rem',
+              fontWeight: 800,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: 'var(--text-primary)',
+            }}
+          >
+            BUTCHER PROTOCOL
+          </h1>
 
-              <TextInput
-                label="Email"
-                type="email"
-                value={email}
-                onChange={setEmail}
-                placeholder="operator@example.com"
-                autoComplete="email"
-                error={errors.email}
-                required
-              />
+          <div
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem',
+              letterSpacing: '0.14em',
+              color: 'var(--signal-red)',
+            }}
+          >
+            INITIALIZE OPERATOR SESSION
+          </div>
+        </div>
 
-              <TextInput
-                label="Password"
-                type="password"
-                value={password}
-                onChange={setPassword}
-                placeholder="••••••••"
-                autoComplete={mode === 'SESSION' ? 'current-password' : 'new-password'}
-                error={errors.password}
-                required
-              />
-
-              {mode === 'IDENTITY' ? (
-                <TextInput
-                  label="Confirm Password"
-                  type="password"
-                  value={confirm}
-                  onChange={setConfirm}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  error={errors.confirm}
-                  required
-                />
-              ) : null}
-
-              <Button type="submit" variant="primary" size="lg" fullWidth loading={submitting}>
-                {mode === 'SESSION' ? 'Initialize Session' : 'Create Identity'}
-              </Button>
-            </form>
-
-            <div className="mt-5 flex items-start gap-2.5 rounded-[3px] border border-border-subtle bg-canvas/60 px-3.5 py-3">
-              <ShieldAlert aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber" />
-              <p className="text-[0.75rem] leading-relaxed text-muted">
-                Interface demonstration only. Nothing entered here is transmitted, stored or validated. Real
-                authentication arrives in Phase 02.
+        {/* Login Panel */}
+        <Card
+          hasBrackets
+          padding="lg"
+          style={{
+            backgroundColor: 'rgba(12, 12, 15, 0.95)',
+            border: '1px solid var(--border-strong)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(225, 29, 56, 0.08)',
+          }}
+        >
+          {sessionSuccess ? (
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <CheckCircle2 size={40} color="var(--success-green)" style={{ margin: '0 auto 12px' }} />
+              <h3
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: '1.1rem',
+                  letterSpacing: '0.08em',
+                  color: 'var(--text-primary)',
+                  margin: '0 0 6px',
+                }}
+              >
+                SESSION INITIALIZED
+              </h3>
+              <p
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  margin: 0,
+                }}
+              >
+                Routing to Command Center...
               </p>
             </div>
-          </div>
+          ) : (
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <Input
+                label="OPERATOR IDENTIFIER / EMAIL"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={errors.email}
+                icon={<Mail size={15} />}
+                placeholder="operator@protocol.intel"
+                autoComplete="email"
+              />
 
-          <p className="mt-6 text-center text-[0.8125rem] text-secondary">
-            {mode === 'SESSION' ? 'No operator identity yet?' : 'Already registered?'}{' '}
-            <button
-              type="button"
-              onClick={switchMode}
-              className="font-display text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-signal underline-offset-4 hover:underline"
-            >
-              {mode === 'SESSION' ? 'Create Identity' : 'Initialize Session'}
-            </button>
-          </p>
-        </motion.div>
-      </main>
+              <Input
+                label="SECURITY PASSPHRASE"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                error={errors.password}
+                icon={<Lock size={15} />}
+                placeholder="••••••••••••"
+                autoComplete="current-password"
+              />
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.72rem',
+                }}
+              >
+                <Badge variant="ONLINE" size="xs">
+                  AUTH MATRIX ACTIVE
+                </Badge>
+                <span style={{ color: 'var(--text-muted)' }}>PHASE 1 MOCK AUTH</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  isLoading={isLoading}
+                  icon={<ArrowRight size={16} />}
+                  iconPosition="right"
+                >
+                  INITIALIZE SESSION
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  icon={<UserPlus size={16} />}
+                  onClick={handleCreateIdentity}
+                >
+                  CREATE IDENTITY
+                </Button>
+              </div>
+            </form>
+          )}
+        </Card>
+
+        {/* Return to Landing Page */}
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              fontFamily: 'var(--font-heading)',
+              fontSize: '0.75rem',
+              letterSpacing: '0.08em',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+          >
+            ← RETURN TO INTELLIGENCE OVERVIEW
+          </button>
+        </div>
+      </div>
     </div>
   );
-}
+};

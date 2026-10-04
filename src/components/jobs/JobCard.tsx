@@ -1,180 +1,292 @@
-import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion';
-import { Bookmark, Check, Crosshair, MapPin, Radio, Sparkles, Trash2 } from 'lucide-react';
-import type { Job } from '@/types';
-import { Badge, Chip } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { ProgressRing } from '@/components/ui/ProgressRing';
-import { formatPostedAt } from '@/lib/matching';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Globe, Clock, Bookmark, Sparkles, Eye } from 'lucide-react';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { ProgressRing } from '../ui/ProgressRing';
+import { Button } from '../ui/Button';
+import type { JobTarget } from '../../data/mockJobs';
 
 interface JobCardProps {
-  job: Job;
-  saved: boolean;
+  job: JobTarget;
+  onViewTarget: (job: JobTarget) => void;
   onToggleSave: (jobId: string) => void;
-  onViewTarget: (job: Job) => void;
-  onForge?: (job: Job) => void;
-  /** Present only for targets the operator added, enabling removal. */
-  onRemove?: (jobId: string) => void;
+  onForgeResume?: (job: JobTarget) => void;
 }
 
-const WORK_MODE_LABEL: Record<Job['workMode'], string> = {
-  REMOTE: 'REMOTE',
-  HYBRID: 'HYBRID',
-  ONSITE: 'ON-SITE',
-};
+export const JobCard: React.FC<JobCardProps> = ({
+  job,
+  onViewTarget,
+  onToggleSave,
+  onForgeResume,
+}) => {
+  const navigate = useNavigate();
 
-export function JobCard({ job, saved, onToggleSave, onViewTarget, onForge, onRemove }: JobCardProps) {
-  const reduced = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
-  const [hovering, setHovering] = useState(false);
-
-  const rotateX = useMotionValue(0);
-  const rotateY = useMotionValue(0);
-  const springConfig = { stiffness: 260, damping: 22, mass: 0.6 };
-  const rotateXSpring = useSpring(rotateX, springConfig);
-  const rotateYSpring = useSpring(rotateY, springConfig);
-  const perspective = useTransform(rotateYSpring, (value) => `${1000 + value * 12}px`);
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (reduced || event.pointerType === 'touch' || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const px = (event.clientX - rect.left) / rect.width - 0.5;
-    const py = (event.clientY - rect.top) / rect.height - 0.5;
-    rotateX.set(-py * 5);
-    rotateY.set(px * 5);
-  };
-
-  const resetTilt = () => {
-    setHovering(false);
-    rotateX.set(0);
-    rotateY.set(0);
+  const handleForge = () => {
+    if (onForgeResume) {
+      onForgeResume(job);
+    } else {
+      navigate('/identity-forge', { state: { selectedJob: job } });
+    }
   };
 
   return (
-    <motion.article
-      ref={ref}
-      onPointerMove={handlePointerMove}
-      onPointerEnter={() => setHovering(true)}
-      onPointerLeave={resetTilt}
-      style={
-        hovering && !reduced
-          ? { rotateX: rotateXSpring, rotateY: rotateYSpring, transformPerspective: perspective }
-          : undefined
-      }
-      className="group relative flex h-full flex-col rounded-[4px] border border-border-subtle bg-surface transition-[border-color,box-shadow] duration-200 ease-out hover:border-border-strong hover:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_18px_40px_-24px_rgba(0,0,0,0.9)]"
+    <Card
+      hasBrackets
+      enableTilt
+      variant="surface"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+      }}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border-subtle px-5 py-3">
-        <span className="u-label">Target Acquired</span>
-        <div className="flex shrink-0 items-center gap-2">
-          {job.matchScore >= 80 ? (
-            <Badge tone={job.priority} dot>
-              {job.priority}
-            </Badge>
-          ) : (
-            <Badge tone={job.priority}>{job.priority}</Badge>
-          )}
+      {/* Target Acquired Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '14px',
+          paddingBottom: '10px',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              backgroundColor: job.priority === 'CRITICAL' ? 'var(--signal-red)' : 'var(--warning-amber)',
+              borderRadius: '1px',
+            }}
+          />
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              letterSpacing: '0.12em',
+              color: 'var(--text-muted)',
+            }}
+          >
+            TARGET ACQUIRED // {job.id}
+          </span>
+        </div>
+
+        <Badge variant={job.priority} size="xs">
+          {job.priority} PRIORITY
+        </Badge>
+      </div>
+
+      {/* Main Content Layout with Match Ring */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: '16px',
+          marginBottom: '16px',
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <h3
+            style={{
+              margin: '0 0 4px 0',
+              fontFamily: 'var(--font-heading)',
+              fontSize: '1.1rem',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              lineHeight: 1.3,
+            }}
+          >
+            {job.title}
+          </h3>
+
+          <div
+            style={{
+              fontFamily: 'var(--font-heading)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              color: 'var(--signal-red)',
+              letterSpacing: '0.04em',
+              marginBottom: '10px',
+            }}
+          >
+            {job.company}
+          </div>
+
+          {/* Metadata chips */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '12px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <MapPin size={12} color="var(--text-muted)" />
+              {job.location}
+            </span>
+
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Globe size={12} color="var(--text-muted)" />
+              {job.workplaceType}
+            </span>
+
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Clock size={12} color="var(--text-muted)" />
+              {job.postedDate}
+            </span>
+          </div>
+        </div>
+
+        {/* Circular Progress Ring */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <ProgressRing
+            percentage={job.matchPercentage}
+            size={72}
+            strokeWidth={5}
+            sublabel="MATCH"
+          />
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.58rem',
+              color: 'var(--text-muted)',
+              marginTop: '4px',
+              letterSpacing: '0.05em',
+            }}
+          >
+            COMPATIBILITY
+          </span>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 px-5 py-5">
-        <div>
-          <h3 className="font-display text-[1.0625rem] font-semibold leading-snug text-primary">{job.title}</h3>
-          <p className="mt-1 text-sm text-secondary">{job.company}</p>
+      {/* Brief Summary */}
+      <p
+        style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: '0.82rem',
+          color: 'var(--text-secondary)',
+          margin: '0 0 16px 0',
+          lineHeight: 1.45,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {job.description}
+      </p>
+
+      {/* SKILL MATRIX */}
+      <div style={{ marginBottom: '16px' }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-heading)',
+            fontSize: '0.65rem',
+            fontWeight: 600,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            marginBottom: '8px',
+          }}
+        >
+          SKILL MATRIX
         </div>
-
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-[0.75rem]">
-          <div className="flex items-center gap-1.5 text-muted">
-            <MapPin aria-hidden="true" className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
-            <dt className="sr-only">Location</dt>
-            <dd className="truncate">{job.location}</dd>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted">
-            <Radio aria-hidden="true" className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
-            <dt className="sr-only">Work mode</dt>
-            <dd>{WORK_MODE_LABEL[job.workMode]}</dd>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted">
-            <Crosshair aria-hidden="true" className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
-            <dt className="sr-only">Source</dt>
-            <dd className="truncate">{job.source}</dd>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted">
-            <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-border-strong" />
-            <dt className="sr-only">Posted</dt>
-            <dd>{formatPostedAt(job.postedAt)}</dd>
-          </div>
-        </dl>
-
-        <div>
-          <p className="u-label mb-2">Skill Matrix</p>
-          <div className="flex flex-wrap gap-1.5">
-            {job.skills.slice(0, 6).map((skill) => (
-              <Chip key={skill} state={job.match.matchedSkills.includes(skill) ? 'matched' : 'neutral'}>
-                {skill}
-              </Chip>
-            ))}
-            {job.skills.length > 6 ? <Chip>+{job.skills.length - 6}</Chip> : null}
-          </div>
-        </div>
-
-        <div className="mt-auto flex items-center justify-between gap-4 border-t border-border-subtle pt-4">
-          <div>
-            <p className="u-label mb-1.5">Match Analysis</p>
-            <p className="whitespace-nowrap text-[0.6875rem] leading-relaxed text-muted">
-              <span className="u-num text-secondary">{job.match.matchedSkills.length}</span> matched
-              <span aria-hidden="true" className="px-1.5 text-border-strong">
-                ·
-              </span>
-              <span className="u-num text-secondary">{job.match.missingSkills.length}</span> missing
-            </p>
-          </div>
-          <ProgressRing value={job.matchScore} tier={job.match.tier} size={72} strokeWidth={4} showLabel={false} label="Match score" />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 border-t border-border-subtle px-5 py-4">
-        <Button size="md" variant="primary" fullWidth onClick={() => onViewTarget(job)}>
-          View Target
-        </Button>
-        <div className="grid grid-cols-2 gap-2">
-          {onForge ? (
-            <Button size="sm" onClick={() => onForge(job)}>
-              <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
-              Forge Resume
-            </Button>
-          ) : (
-            <Link
-              to={`/identity-forge?target=${job.id}`}
-              className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-[3px] border border-border-strong font-display text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-primary transition-colors duration-150 hover:border-signal-dim hover:bg-elevated"
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {job.skills.slice(0, 5).map((skill) => (
+            <span
+              key={skill}
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.7rem',
+                backgroundColor: 'rgba(31, 31, 38, 0.6)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '2px 8px',
+                color: 'var(--text-primary)',
+              }}
             >
-              <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
-              Forge Resume
-            </Link>
+              {skill}
+            </span>
+          ))}
+          {job.skills.length > 5 && (
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.7rem',
+                color: 'var(--text-muted)',
+                padding: '2px 4px',
+              }}
+            >
+              +{job.skills.length - 5} MORE
+            </span>
           )}
-          <Button
-            size="sm"
-            variant={saved ? 'primary' : 'secondary'}
-            onClick={() => onToggleSave(job.id)}
-            aria-pressed={saved}
-            aria-label={saved ? `Remove ${job.title} at ${job.company} from saved targets` : `Save ${job.title} at ${job.company}`}
-            className="whitespace-nowrap"
-          >
-            {saved ? <Check aria-hidden="true" className="h-3.5 w-3.5" /> : <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />}
-            {saved ? 'Saved' : 'Save Target'}
-          </Button>
         </div>
-        {onRemove ? (
-          <button
-            type="button"
-            onClick={() => onRemove(job.id)}
-            className="mt-1 inline-flex items-center gap-1.5 self-start font-display text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-muted transition-colors hover:text-signal"
-          >
-            <Trash2 aria-hidden="true" className="h-3 w-3" />
-            Remove this target
-          </button>
-        ) : null}
       </div>
-    </motion.article>
+
+      {/* Actions */}
+      <div
+        style={{
+          marginTop: 'auto',
+          paddingTop: '14px',
+          borderTop: '1px solid var(--border-subtle)',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr auto',
+          gap: '8px',
+          alignItems: 'center',
+        }}
+      >
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<Eye size={13} />}
+          onClick={() => onViewTarget(job)}
+        >
+          VIEW TARGET
+        </Button>
+
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<Sparkles size={13} />}
+          onClick={handleForge}
+        >
+          FORGE RESUME
+        </Button>
+
+        <button
+          onClick={() => onToggleSave(job.id)}
+          title={job.isSaved ? 'Target Saved' : 'Save Target'}
+          aria-label={job.isSaved ? 'Saved target' : 'Save target'}
+          style={{
+            backgroundColor: job.isSaved ? 'rgba(225, 29, 56, 0.15)' : 'rgba(19, 19, 24, 0.6)',
+            border: `1px solid ${job.isSaved ? 'var(--signal-red)' : 'var(--border-strong)'}`,
+            color: job.isSaved ? 'var(--signal-red)' : 'var(--text-secondary)',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            padding: '7px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Bookmark size={15} fill={job.isSaved ? 'var(--signal-red)' : 'none'} />
+        </button>
+      </div>
+    </Card>
   );
-}
+};
