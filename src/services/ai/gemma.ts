@@ -77,14 +77,59 @@ function parseStructured<T>(raw: string): T {
   return JSON.parse(cleaned.slice(start, end + 1)) as T;
 }
 
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta';
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+
 /**
- * The single outbound call to Gemma 4 31B IT. Unimplemented in Phase 1 by
- * design — no Gemini request is made anywhere in this phase.
+ * The single outbound call to Gemma 4 31B IT.
+ *
+ * Runs only on the server. `callGemma()` is the one place that touches the
+ * network; every public function below parses and validates its output.
+ *
+ * Gemini returns 503 "high demand" under load. That is transient, so a small
+ * bounded retry runs server-side where the user waits anyway — better than
+ * surfacing a failed forge.
  */
-async function callGemma(_prompt: string): Promise<string> {
+async function callGemma(prompt: string): Promise<string> {
   assertServerOnly();
-  readGeminiApiKey();
-  throw new Error('Gemma integration is scheduled for Phase 3. No Gemini request is made in Phase 1.');
+  const key = readGeminiApiKey();
+  const model = geminiModelId();
+  const url = `${GEMINI_ENDPOINT}/models/${encodeURIComponent(model)}:generateContent`;
+
+  let lastError = '';
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 800 * 2 ** (attempt - 1)));
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4096,
+          responseMimeType: 'application/json',
+        },
+      }),
+    });
+
+    if (response.ok) {
+      const payload = (await response.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('') ?? '';
+      if (text.trim()) return text;
+      lastError = 'Gemma returned an empty response.';
+      continue;
+    }
+
+    const detail = await response.text().catch(() => '');
+    lastError = `Gemini request failed (${response.status} ${model}). ${detail.slice(0, 200)}`;
+    if (!RETRYABLE.has(response.status)) throw new Error(lastError);
+  }
+
+  throw new Error(lastError);
 }
 
 export async function analyzeJob(request: AnalyzeJobRequest): Promise<AnalyzeJobResponse> {
@@ -106,9 +151,24 @@ export async function analyzeATS(request: AnalyzeATSRequest): Promise<ATSExtract
 }
 
 /**
- * Server-side surface. In Phase 3 the server routes delegate to this object.
- * Phase 1 code must not reference it from the browser.
+ * Server-side surface. The HTTP layer delegates to this object.
+ *
+ * ── Phase 3 status: IMPLEMENTED ──────────────────────────────────────────────
+ * This module now performs the real Gemini call. It is imported by
+ * `server/entry.ts` and by the Vite dev middleware only. No component, page,
+ * hook or client file may import it — the browser reaches it over HTTP through
+ * `src/services/ai/aiClient.ts`, which never sees the key.
  */
+
+/** True when a server key is present, so the UI can state the real mode. */
+export function isConfigured(): boolean {
+  try {
+    assertServerOnly();
+    return Boolean(serverEnv(ENV_KEY_NAME));
+  } catch {
+    return false;
+  }
+}
 export const gemmaService = {
   analyzeJob,
   tailorResume,

@@ -1,15 +1,19 @@
 /**
  * THE AI BOUNDARY.
  *
- * UI  →  aiClient (this file)  →  [Phase 3] server route  →  gemma.ts  →  Gemma 4 31B IT
+ *   UI  ->  aiClient (this file)  ->  POST /api/ai/*  ->  gemma.ts  ->  Gemma 4 31B IT
  *
  * Every UI component imports only from here. Nothing in `src/components`,
- * `src/pages` or any other client module may import `gemma.ts` directly.
+ * `src/pages` or any other client module may import `gemma.ts` directly, and
+ * the Gemini key never reaches the browser.
  *
- * Phase 1: the `mock` provider runs deterministic extraction with a simulated
- * delay. No network call, no API key, no Gemini request.
- * Phase 3: switch `ACTIVE_PROVIDER` to `'gemma'` and implement the `gemma`
- * branch to POST to the server routes. That is the only file that changes.
+ * Two providers:
+ *  - `gemma` — the server at /api answered. Real model inference.
+ *  - `mock`  — no server, or the server declined. Deterministic extraction
+ *              runs in the browser instead, so a static-only deploy still works.
+ *
+ * `aiResult.meta.simulated` tells the UI which one produced the result, and the
+ * UI says so. It never claims live AI when it is not live.
  */
 
 import { mockAnalyzeATS, mockAnalyzeJob, mockTailorResume } from './mockEngine';
@@ -26,15 +30,14 @@ import type {
 import { GEMMA_MODEL } from './prompts';
 
 /**
- * Planned engine. Shown in the UI as an architecture statement only — Phase 1
- * performs no model inference.
+ * Planned engine, and now the configured one on the server.
+ * Shown in the UI as an architecture statement.
  */
 export const PLANNED_ENGINE = 'GEMMA 4 31B IT';
 export const PLANNED_MODEL_ID = GEMMA_MODEL;
 
-export const ACTIVE_PROVIDER: AIProvider = 'mock';
-
-const SIMULATED_LATENCY_MS = 900;
+/** Milliseconds to wait for the server before falling back to in-browser mode. */
+const SERVER_TIMEOUT_MS = 20_000;
 
 export class AIServiceError extends Error {
   constructor(message: string) {
@@ -43,17 +46,30 @@ export class AIServiceError extends Error {
   }
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+/* -------------------------------------------------------------------------- */
+/* Server transport                                                            */
+/* -------------------------------------------------------------------------- */
 
-/**
- * Stable simulated delay so the UI can build honest loading states.
- * Phase 3 deletes this and awaits the network instead.
- */
-async function simulateProcessing(label: string): Promise<void> {
-  await delay(SIMULATED_LATENCY_MS);
-  void label;
+async function callServer<T>(route: string, body: unknown): Promise<T | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`/api/ai/${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { ok?: boolean; data?: T };
+    return payload.ok && payload.data !== undefined ? payload.data : null;
+  } catch {
+    // No server, offline, or blocked. In-browser extraction takes over.
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -72,13 +88,15 @@ export interface AiResult<T> {
 }
 
 const MOCK_META: AiOperationMeta = { provider: 'mock', model: PLANNED_MODEL_ID, simulated: true };
+const LIVE_META: AiOperationMeta = { provider: 'gemma', model: PLANNED_MODEL_ID, simulated: false };
 
 /** Gemma 4 31B IT extracts structured requirements from a job description. */
 export async function analyzeJob(request: AnalyzeJobRequest): Promise<AiResult<AnalyzeJobResponse>> {
   if (request.jobDescription.trim().length < 40) {
     throw new AIServiceError('Job description is too short to analyse.');
   }
-  await simulateProcessing('analyzeJob');
+  const live = await callServer<AnalyzeJobResponse>('analyze-job', request);
+  if (live) return { data: live, meta: LIVE_META };
   return { data: mockAnalyzeJob(request), meta: MOCK_META };
 }
 
@@ -87,27 +105,29 @@ export async function tailorResume(request: TailorResumeRequest): Promise<AiResu
   if (request.jobDescription.trim().length < 40) {
     throw new AIServiceError('A target job description is required before forging.');
   }
-  await simulateProcessing('tailorResume');
+  const live = await callServer<TailorResumeResponse>('tailor-resume', request);
+  if (live) return { data: live, meta: LIVE_META };
   return { data: mockTailorResume(request), meta: MOCK_META };
 }
 
 /**
- * Protocol scan. Returns the raw extraction only — the compatibility numbers
+ * Protocol scan. The model returns extraction only; the compatibility numbers
  * are computed by `computeAtsEstimate`, never by the model.
  */
 export async function analyzeATS(
   request: AnalyzeATSRequest,
 ): Promise<AiResult<{ extraction: ATSExtraction; estimate: ATSAnalysis }>> {
-  await simulateProcessing('analyzeATS');
+  const live = await callServer<{ extraction: ATSExtraction; estimate: ATSAnalysis }>('analyze-ats', request);
+  if (live) return { data: live, meta: LIVE_META };
+
   const extraction = mockAnalyzeATS(request);
   const estimate = computeAtsEstimate({ extraction, resume: request.resume, jobAnalysis: request.jobAnalysis });
   return { data: { extraction, estimate }, meta: MOCK_META };
 }
 
 /**
- * The single object the UI calls. Named `aiService` to keep it distinct from
- * the server-only `gemmaService` in `gemma.ts` — the future swap replaces the
- * bodies here, not this import path.
+ * The single object the UI calls. No UI component imports `gemma.ts`; this is
+ * the only path from the browser to the model.
  */
 export const aiService = {
   analyzeJob,

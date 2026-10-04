@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:server": "vite build --ssr server/entry.ts --outDir dist-server --logLevel error",
+    "serve": "npm run build && npm run build:server && node --env-file-if-exists=.env dist-server/entry.js",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "verify:render": "vite build --ssr scripts/renderCheck.tsx --outDir dist-smoke --logLevel error && node dist-smoke/renderCheck.js",
