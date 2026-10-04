@@ -1,0 +1,233 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   BUTCHER PROTOCOL — DESIGN TOKENS
+   Dark-only. Source of truth: DESIGN_SYSTEM.md
+   ========================================================================== */
+
+@theme {
+  /* Surfaces. `canvas` rather than `base` so the token cannot collide with
+     Tailwind's `text-base` font-size utility. */
+  --color-canvas: #050506;
+  --color-surface: #0c0c0f;
+  --color-elevated: #131318;
+  --color-border-subtle: #1f1f26;
+  --color-border-strong: #2e2e38;
+
+  /* Text */
+  --color-primary: #f1f1f3;
+  --color-secondary: #a3a3ad;
+  --color-muted: #6b6b76;
+
+  /* Signal */
+  --color-signal: #e11d38;
+  --color-signal-dim: #7f1020;
+  --color-amber: #f5a524;
+  --color-intel: #4c8dff;
+  --color-success: #2fbf71;
+
+  /* Type */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Layout */
+  --spacing-sidebar: 264px;
+  --spacing-topbar: 64px;
+}
+
+:root {
+  /* Raw token aliases (DESIGN_SYSTEM.md §2) */
+  --bg-base: #050506;
+  --bg-surface: #0c0c0f;
+  --bg-elevated: #131318;
+  --border-subtle: #1f1f26;
+  --border-strong: #2e2e38;
+  --text-primary: #f1f1f3;
+  --text-secondary: #a3a3ad;
+  --text-muted: #6b6b76;
+  --signal-red: #e11d38;
+  --signal-red-dim: #7f1020;
+  --warning-amber: #f5a524;
+  --intel-blue: #4c8dff;
+  --success-green: #2fbf71;
+
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--border-subtle);
+}
+
+html {
+  background-color: var(--bg-base);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+::selection {
+  background: rgba(225, 29, 56, 0.32);
+  color: var(--text-primary);
+}
+
+/* Focus — always visible, never removed */
+:focus-visible {
+  outline: 2px solid var(--signal-red);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Thin intelligence scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3d3d49;
+}
+
+/* ---------- Type utilities ---------- */
+.u-label {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.u-page-title {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: clamp(1.35rem, 2.4vw, 1.875rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.u-num {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ---------- Surfaces ---------- */
+.u-noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.u-grid-lines {
+  background-image: linear-gradient(to right, rgba(31, 31, 38, 0.55) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(31, 31, 38, 0.55) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* Corner brackets for intelligence panels */
+.u-brackets::before,
+.u-brackets::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--signal-red-dim);
+  pointer-events: none;
+}
+.u-brackets::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+.u-brackets::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+/* ---------- Ambient lighting ---------- */
+.u-glow-red {
+  box-shadow: 0 0 0 1px rgba(225, 29, 56, 0.16), 0 0 28px -6px rgba(225, 29, 56, 0.28);
+}
+.u-shadow-panel {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -18px rgba(0, 0, 0, 0.9);
+}
+.u-shadow-doc {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), 0 30px 60px -30px rgba(0, 0, 0, 0.95);
+}
+
+/* ---------- Scan line (active scan states only) ---------- */
+.u-scanline-host {
+  position: relative;
+  overflow: hidden;
+}
+.u-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 140px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(225, 29, 56, 0) 35%,
+    rgba(225, 29, 56, 0.12) 62%,
+    rgba(76, 141, 255, 0.16) 78%,
+    transparent 100%
+  );
+  border-bottom: 1px solid rgba(225, 29, 56, 0.5);
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .u-scanline {
+    display: none;
+  }
+}

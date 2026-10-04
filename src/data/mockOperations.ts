@@ -1,0 +1,111 @@
+import type { Operation, OperationStatus } from '@/types';
+
+/**
+ * DEVELOPMENT DATA — application tracking.
+ * The `Operation` shape is deliberately flat so a Phase 2 Supabase table can
+ * mirror it directly (`job_id` is kept for the eventual foreign key).
+ */
+export const mockOperations: Operation[] = [
+  {
+    id: 'op-001',
+    jobId: 'bp-001',
+    jobTitle: 'Machine Learning Engineer',
+    company: 'Helix Vector Labs',
+    date: '2026-10-03',
+    matchScore: 95,
+    status: 'INTERVIEW',
+    note: 'First-round scheduled. Panel includes two staff engineers.',
+  },
+  {
+    id: 'op-002',
+    jobId: 'bp-002',
+    jobTitle: 'Data Scientist',
+    company: 'Northarc Systems',
+    date: '2026-10-02',
+    matchScore: 81,
+    status: 'APPLIED',
+    note: 'Applied with a forecasting-focused variant of the base resume.',
+  },
+  {
+    id: 'op-003',
+    jobId: 'bp-003',
+    jobTitle: 'AI Engineer',
+    company: 'Quanterra',
+    date: '2026-10-03',
+    matchScore: 90,
+    status: 'APPLIED',
+    note: 'Referred internally. Waiting on founder acknowledgement.',
+  },
+  {
+    id: 'op-004',
+    jobId: 'bp-004',
+    jobTitle: 'NLP Engineer',
+    company: 'Tessellate AI',
+    date: '2026-09-30',
+    matchScore: 85,
+    status: 'SAVED',
+    note: 'Tailored resume ready. Holding until the async exercise lands.',
+  },
+  {
+    id: 'op-005',
+    jobId: 'bp-008',
+    jobTitle: 'Computer Vision Engineer',
+    company: 'Ironvale Robotics',
+    date: '2026-09-28',
+    matchScore: 55,
+    status: 'REJECTED',
+    note: 'Closed after the CV-specific technical screen.',
+  },
+  {
+    id: 'op-006',
+    jobId: 'bp-012',
+    jobTitle: 'AI Engineer',
+    company: 'Arclight Inference',
+    date: '2026-10-04',
+    matchScore: 100,
+    status: 'SAVED',
+    note: 'Highest alignment in the current set. Preparing to apply.',
+  },
+  {
+    id: 'op-007',
+    jobId: 'bp-009',
+    jobTitle: 'Applied ML Engineer',
+    company: 'Signalfern',
+    date: '2026-09-27',
+    matchScore: 70,
+    status: 'OFFER',
+    note: 'Offer received. Negotiating scope and start window.',
+  },
+  {
+    id: 'op-008',
+    jobId: 'bp-006',
+    jobTitle: 'MLOps Engineer',
+    company: 'Latticefold',
+    date: '2026-09-30',
+    matchScore: 64,
+    status: 'INTERVIEW',
+    note: 'Technical conversation booked for platform and CI/CD depth.',
+  },
+  {
+    id: 'op-009',
+    jobId: 'bp-010',
+    jobTitle: 'Data Scientist',
+    company: 'Nimbus Grid',
+    date: '2026-10-01',
+    matchScore: 86,
+    status: 'SAVED',
+    note: 'Resume variant ready for the forecasting product surface.',
+  },
+  {
+    id: 'op-010',
+    jobId: 'bp-013',
+    jobTitle: 'Data Analyst',
+    company: 'Fieldstone Retail Labs',
+    date: '2026-09-23',
+    matchScore: 48,
+    status: 'REJECTED',
+    note: 'Below the match threshold. Archived for reference.',
+  },
+];
+
+export const OPERATION_STATUSES: OperationStatus[] = ['SAVED', 'APPLIED', 'INTERVIEW', 'REJECTED', 'OFFER'];
